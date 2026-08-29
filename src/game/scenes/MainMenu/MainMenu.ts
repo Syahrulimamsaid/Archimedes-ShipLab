@@ -1,11 +1,12 @@
-import { GameObjects, Scale, Scene } from 'phaser';
+import { GameObjects, Geom, Scale, Scene } from 'phaser';
 
-import { EventBus } from '../EventBus';
+import { EventBus } from '../../EventBus';
+import { ModalExit } from './ModalExit';
 
 export class MainMenu extends Scene
 {
     private background!: GameObjects.Image;
-    private topBar!: GameObjects.Rectangle;
+    private topBar!: GameObjects.Graphics;
     private logo!: GameObjects.Image;
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
@@ -25,6 +26,7 @@ export class MainMenu extends Scene
     private scoreSubText!: GameObjects.Text;
     private badgePanel!: GameObjects.Container;
     private bottomInfoBar!: GameObjects.Image;
+    private exitModal!: ModalExit;
 
     private topButtons: GameObjects.Container[] = [];
     private bottomButtons: GameObjects.Container[] = [];
@@ -38,7 +40,7 @@ export class MainMenu extends Scene
     create ()
     {
         this.background = this.add.image(0, 0, 'background.home');
-        this.topBar = this.add.rectangle(0, 0, 100, 100, 0x0d4fa3, 0.92).setOrigin(0);
+        this.topBar = this.add.graphics();
         this.logo = this.add.image(0, 0, 'logo').setOrigin(0, 0.5).setDepth(20);
 
         this.welcomeTitle = this.add.text(0, 0, 'Selamat Datang, Taruna!', {
@@ -53,8 +55,12 @@ export class MainMenu extends Scene
             color: '#244f89'
         }).setOrigin(0.5);
 
-        this.anatomiCard = this.add.image(0, 0, 'home.card.anatomi').setInteractive({ useHandCursor: true });
-        this.stabilitasCard = this.add.image(0, 0, 'home.card.stabilitas').setInteractive({ useHandCursor: true });
+        this.anatomiCard = this.add.image(0, 0, 'home.card.anatomi')
+            .setDepth(10)
+            .setInteractive({ useHandCursor: true });
+        this.stabilitasCard = this.add.image(0, 0, 'home.card.stabilitas')
+            .setDepth(10)
+            .setInteractive({ useHandCursor: true });
         this.anatomiCard.on('pointerdown', () => this.changeScene());
         this.stabilitasCard.on('pointerdown', () => this.changeScene());
 
@@ -74,21 +80,29 @@ export class MainMenu extends Scene
             0x4aa96c
         );
 
+        this.leftInfoPanel.setDepth(30);
+        this.rightInfoPanel.setDepth(30);
         this.leftInfoPanel.setVisible(false);
         this.rightInfoPanel.setVisible(false);
+        this.leftInfoPanel.setAlpha(0);
+        this.rightInfoPanel.setAlpha(0);
 
         this.anatomiCard.on('pointerover', () => {
-            this.leftInfoPanel.setVisible(true);
+            this.showInfoPanel(this.leftInfoPanel);
+            this.showCardPopup(this.anatomiCard);
         });
         this.anatomiCard.on('pointerout', () => {
-            this.leftInfoPanel.setVisible(false);
+            this.hideInfoPanel(this.leftInfoPanel);
+            this.hideCardPopup(this.anatomiCard);
         });
 
         this.stabilitasCard.on('pointerover', () => {
-            this.rightInfoPanel.setVisible(true);
+            this.showInfoPanel(this.rightInfoPanel);
+            this.showCardPopup(this.stabilitasCard);
         });
         this.stabilitasCard.on('pointerout', () => {
-            this.rightInfoPanel.setVisible(false);
+            this.hideInfoPanel(this.rightInfoPanel);
+            this.hideCardPopup(this.stabilitasCard);
         });
 
         const profile = this.createProfilePanel();
@@ -106,16 +120,19 @@ export class MainMenu extends Scene
         this.badgePanel = this.createBadgePanel();
         this.bottomInfoBar = this.add.image(0, 0, 'home.bar.info');
 
-        this.topButtons = [
-            this.createImageButton('home.btn.settings'),
-            this.createImageButton('home.btn.achievements'),
-            this.createImageButton('home.btn.power')
-        ];
+        const exitButton = this.createImageButton('home.btn.exit');
+
+        exitButton.on('pointerdown', () => this.exitModal.open());
+        this.attachExitButtonHoverEffect(exitButton);
+
+        this.topButtons = [exitButton];
 
         this.bottomButtons = [
             this.createImageButton('home.btn.panduan'),
             this.createImageButton('home.btn.tentang')
         ];
+
+        this.exitModal = new ModalExit(this, () => this.scene.start('Preloader'));
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
@@ -303,14 +320,116 @@ export class MainMenu extends Scene
     {
         const container = this.add.container(0, 0);
         const image = this.add.image(0, 0, texture).setOrigin(0.5);
+
         container.add(image);
+        container.setData('image', image);
         container.setSize(image.width, image.height);
+        container.setInteractive(new Geom.Rectangle(-image.width / 2, -image.height / 2, image.width, image.height), Geom.Rectangle.Contains);
+
         return container;
+    }
+
+    private attachExitButtonHoverEffect (button: GameObjects.Container)
+    {
+        button.on('pointerover', () => this.showExitButtonHover(button));
+        button.on('pointerout', () => this.hideExitButtonHover(button));
     }
 
     private handleResize (gameSize: Phaser.Structs.Size)
     {
         this.layout(gameSize.width, gameSize.height);
+    }
+
+    private showCardPopup (card: GameObjects.Image)
+    {
+        const baseY = card.getData('baseY') as number;
+        const baseWidth = card.getData('baseWidth') as number;
+        const baseHeight = card.getData('baseHeight') as number;
+
+        this.tweens.killTweensOf(card);
+
+        this.tweens.add({
+            targets: card,
+            displayWidth: baseWidth * 1.06,
+            displayHeight: baseHeight * 1.06,
+            y: baseY - 12,
+            duration: 180,
+            ease: 'Quad.Out'
+        });
+    }
+
+    private hideCardPopup (card: GameObjects.Image)
+    {
+        const baseY = card.getData('baseY') as number;
+        const baseWidth = card.getData('baseWidth') as number;
+        const baseHeight = card.getData('baseHeight') as number;
+
+        this.tweens.killTweensOf(card);
+
+        this.tweens.add({
+            targets: card,
+            displayWidth: baseWidth,
+            displayHeight: baseHeight,
+            y: baseY,
+            duration: 180,
+            ease: 'Quad.Out'
+        });
+    }
+
+    private showInfoPanel (panel: GameObjects.Container)
+    {
+        this.tweens.killTweensOf(panel);
+        panel.setVisible(true);
+
+        this.tweens.add({
+            targets: panel,
+            alpha: 1,
+            duration: 160,
+            ease: 'Quad.Out'
+        });
+    }
+
+    private hideInfoPanel (panel: GameObjects.Container)
+    {
+        this.tweens.killTweensOf(panel);
+
+        this.tweens.add({
+            targets: panel,
+            alpha: 0,
+            duration: 140,
+            ease: 'Quad.Out',
+            onComplete: () => {
+                panel.setVisible(false);
+            }
+        });
+    }
+
+    private showExitButtonHover (button: GameObjects.Container)
+    {
+        const baseY = (button.getData('baseY') as number) ?? button.y;
+
+        this.tweens.killTweensOf(button);
+        this.tweens.add({
+            targets: button,
+            y: baseY - 6,
+            angle: -4,
+            duration: 160,
+            ease: 'Quad.Out'
+        });
+    }
+
+    private hideExitButtonHover (button: GameObjects.Container)
+    {
+        const baseY = (button.getData('baseY') as number) ?? button.y;
+
+        this.tweens.killTweensOf(button);
+        this.tweens.add({
+            targets: button,
+            y: baseY,
+            angle: 0,
+            duration: 160,
+            ease: 'Quad.Out'
+        });
     }
 
     private playIntroAnimation ()
@@ -326,8 +445,6 @@ export class MainMenu extends Scene
             this.logo,
             this.welcomeTitle,
             this.welcomeSubtitle,
-            this.anatomiCard,
-            this.stabilitasCard,
             this.profilePanel,
             this.scoreCard,
             this.badgePanel
@@ -347,6 +464,27 @@ export class MainMenu extends Scene
                 scaleY: item.scaleY / 0.96,
                 duration: 500,
                 delay: index * 80,
+                ease: 'Back.Out'
+            });
+        });
+
+        [this.anatomiCard, this.stabilitasCard].forEach((card, index) => {
+            const baseY = card.getData('baseY') as number;
+            const baseWidth = card.getData('baseWidth') as number;
+            const baseHeight = card.getData('baseHeight') as number;
+
+            card.setAlpha(0);
+            card.setY(baseY + 18);
+            card.setDisplaySize(baseWidth * 0.96, baseHeight * 0.96);
+
+            this.tweens.add({
+                targets: card,
+                alpha: 1,
+                y: baseY,
+                displayWidth: baseWidth,
+                displayHeight: baseHeight,
+                duration: 500,
+                delay: (index + 3) * 80,
                 ease: 'Back.Out'
             });
         });
@@ -384,15 +522,45 @@ export class MainMenu extends Scene
         this.background.setPosition(centerX, centerY);
         this.background.setDisplaySize(width, height);
 
-        this.topBar.setPosition(0, 0);
-        this.topBar.setSize(width, Math.max(72, height * 0.115));
+        const headerPaddingX = Math.max(12, width * 0.012);
+        const headerPaddingTop = Math.max(10, height * 0.012);
+        const headerInnerPaddingX = Math.max(20, width * 0.014);
+        const headerHeight = Math.max(72, height * 0.115);
+        const headerRadius = Math.min(60, headerHeight * 0.60);
+        const headerWidth = width - (headerPaddingX * 2);
 
-        this.logo.setPosition(42, this.topBar.height / 2 + 4);
-        this.logo.setDisplaySize(300 * cardScale, 78 * cardScale);
+        this.topBar.clear();
+        this.topBar.fillStyle(0x0d4fa3, 0.88);
+        this.topBar.lineStyle(2, 0xffffff, 0.22);
+        this.topBar.fillRoundedRect(headerPaddingX, headerPaddingTop, headerWidth, headerHeight, headerRadius);
+        this.topBar.strokeRoundedRect(headerPaddingX, headerPaddingTop, headerWidth, headerHeight, headerRadius);
 
-        this.topButtons.forEach((button, index) => {
-            button.setPosition(width - 58 - ((2 - index) * 58), this.topBar.height / 2 + 2);
-            button.setScale(Math.min(cardScale, 1));
+        this.logo.setPosition(headerPaddingX + headerInnerPaddingX, headerPaddingTop + (headerHeight / 2) + 4);
+        this.logo.setDisplaySize(300 * cardScale, 100 * cardScale);
+
+        const topButtonSize = Math.max(42, Math.min(52, headerHeight * 0.62));
+        let currentRightX = width - headerPaddingX - headerInnerPaddingX;
+
+        this.topButtons.slice().reverse().forEach((button) => {
+            const image = button.getData('image') as GameObjects.Image | undefined;
+            const buttonWidth = topButtonSize;
+            const buttonHeight = topButtonSize;
+            const buttonCenterX = currentRightX - (buttonWidth / 2);
+            const buttonCenterY = headerPaddingTop + (headerHeight / 2) + 2;
+
+            button.setPosition(buttonCenterX, buttonCenterY);
+            button.setScale(1);
+            button.setData('baseY', buttonCenterY);
+            button.setData('baseScaleX', 1);
+            button.setData('baseScaleY', 1);
+
+            if (image)
+            {
+                image.setDisplaySize(buttonWidth, buttonHeight);
+            }
+
+            button.setSize(buttonWidth, buttonHeight);
+            currentRightX -= buttonWidth;
         });
 
         this.welcomeTitle.setPosition(width * 0.43, contentTop + 36);
@@ -403,13 +571,19 @@ export class MainMenu extends Scene
 
         const cardY = centerY + 30;
         const cardWidth = 420 * cardScale;
-        const cardHeight = 570 * cardScale;
+        const cardHeight = 600 * cardScale;
 
         this.anatomiCard.setPosition(width * 0.315, cardY);
         this.anatomiCard.setDisplaySize(cardWidth, cardHeight);
+        this.anatomiCard.setData('baseY', cardY);
+        this.anatomiCard.setData('baseWidth', cardWidth);
+        this.anatomiCard.setData('baseHeight', cardHeight);
 
         this.stabilitasCard.setPosition(width * 0.49, cardY);
         this.stabilitasCard.setDisplaySize(cardWidth, cardHeight);
+        this.stabilitasCard.setData('baseY', cardY);
+        this.stabilitasCard.setData('baseWidth', cardWidth);
+        this.stabilitasCard.setData('baseHeight', cardHeight);
 
         this.leftInfoPanel.setPosition(width * 0.12, cardY + 6);
         this.leftInfoPanel.setScale(Math.max(0.68, cardScale * 0.88));
@@ -447,5 +621,7 @@ export class MainMenu extends Scene
 
         this.profileArea.setRadius(58);
         this.profileAvatar.setFontSize(20);
+
+        this.exitModal.layout(centerX, centerY, width, height);
     }
 }
