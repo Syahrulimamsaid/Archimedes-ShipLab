@@ -8,6 +8,10 @@ export class Boot extends Scene {
     preload() {
         this.load.image("background", "assets/bg.png");
         this.load.image("logo", "assets/logo.png");
+        this.load.image("icon.human", "assets/icon.png");
+        this.load.image("profile.human", "assets/profile.png");
+        this.load.image("btn.touch", "assets/btn_touch.png");
+        
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(
             "home.card.anatomi",

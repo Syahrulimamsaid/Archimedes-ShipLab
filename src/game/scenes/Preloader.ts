@@ -8,6 +8,7 @@ export class Preloader extends Scene
     private progressFill!: Phaser.GameObjects.Graphics;
     private progressText!: GameObjects.Text;
     private continueText!: GameObjects.Text;
+    private touchButton!: GameObjects.Image;
     private isReadyToContinue = false;
     private progressValue = 0;
     private hasPlayedIntro = false;
@@ -44,6 +45,11 @@ export class Preloader extends Scene
             .setOrigin(0.5)
             .setAlpha(0);
 
+        this.touchButton = this.add
+            .image(0, 0, "btn.touch")
+            .setOrigin(0.5)
+            .setAlpha(0);
+
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
 
@@ -62,10 +68,35 @@ export class Preloader extends Scene
             this.layout(this.scale.width, this.scale.height);
 
             this.tweens.add({
+                targets: this.progressText,
+                alpha: 0,
+                duration: 240,
+                ease: "Power2",
+            });
+
+            this.tweens.add({
                 targets: this.continueText,
                 alpha: 1,
-                duration: 400,
+                duration: 300,
                 ease: "Power2",
+            });
+
+            this.tweens.add({
+                targets: this.touchButton,
+                alpha: 1,
+                duration: 300,
+                ease: "Power2",
+                onComplete: () => {
+                    this.touchButton.setData("baseY", this.touchButton.y);
+                    this.tweens.add({
+                        targets: this.touchButton,
+                        y: this.touchButton.y - 6,
+                        duration: 650,
+                        ease: "Sine.InOut",
+                        yoyo: true,
+                        repeat: -1,
+                    });
+                },
             });
         });
     }
@@ -120,6 +151,9 @@ export class Preloader extends Scene
         this.continueText.setScale(0.9);
         this.continueText.setAngle(-2);
 
+        this.touchButton.setAlpha(0);
+        this.touchButton.setScale(0.9);
+
         this.tweens.add({
             targets: this.logo,
             alpha: 1,
@@ -159,13 +193,23 @@ export class Preloader extends Scene
 
         this.tweens.add({
             targets: this.continueText,
-            alpha: this.isReadyToContinue ? 1 : 0,
+            alpha: 0,
             scaleX: 1,
             scaleY: 1,
             angle: 0,
             duration: 1000,
             ease: 'Back.Out',
             delay: 300
+        });
+
+        this.tweens.add({
+            targets: this.touchButton,
+            alpha: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 1000,
+            ease: 'Back.Out',
+            delay: 320
         });
     }
 
@@ -225,5 +269,22 @@ export class Preloader extends Scene
 
         this.progressText.setPosition(centerX, barY + frameHeight + 42);
         this.continueText.setPosition(centerX, barY + frameHeight + 90);
+
+        const touchBaseY = barY + frameHeight + 42;
+        const currentTouchAlpha = this.touchButton.alpha;
+        const isTouchAnimating = this.tweens.isTweening(this.touchButton);
+
+        if (!isTouchAnimating || currentTouchAlpha <= 0)
+        {
+            this.touchButton.setPosition(centerX, touchBaseY);
+        }
+        else
+        {
+            const animatedOffsetY = this.touchButton.y - ((this.touchButton.getData("baseY") as number) ?? touchBaseY);
+            this.touchButton.setPosition(centerX, touchBaseY + animatedOffsetY);
+        }
+
+        this.touchButton.setData("baseY", touchBaseY);
+        this.touchButton.setDisplaySize(72, 72);
     }
 }
