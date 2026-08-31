@@ -1,8 +1,9 @@
 import { GameObjects, Scale, Scene } from "phaser";
-
 import { ButtonImage } from '../../../component/Button/ButtonImage';
 import { EventBus } from '../../EventBus';
+import { MenuCard } from './MenuCard';
 import { ModalExit } from './ModalExit';
+import { ProfileCard } from './ProfileCard';
 
 export class MainMenu extends Scene {
     private background!: GameObjects.Image;
@@ -11,20 +12,8 @@ export class MainMenu extends Scene {
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
 
-    private anatomiCard!: GameObjects.Image;
-    private stabilitasCard!: GameObjects.Image;
-    private leftInfoPanel!: GameObjects.Container;
-    private rightInfoPanel!: GameObjects.Container;
-
-    private profilePanel!: GameObjects.Container;
-    private profileArea!: GameObjects.Arc;
-    private profileAvatar!: GameObjects.Image;
-    private scoreCard!: GameObjects.Container;
-    private scoreRing!: GameObjects.Graphics;
-    private scoreTitle!: GameObjects.Text;
-    private scoreText!: GameObjects.Text;
-    private scoreSubText!: GameObjects.Text;
-    private badgePanel!: GameObjects.Container;
+    private menuCards: MenuCard[] = [];
+    private profileCard!: ProfileCard;
     private bottomInfoBar!: GameObjects.Image;
     private exitModal!: ModalExit;
 
@@ -62,71 +51,33 @@ export class MainMenu extends Scene {
             )
             .setOrigin(0.5);
 
-        this.anatomiCard = this.add
-            .image(0, 0, "home.card.anatomi")
-            .setDepth(10)
-            .setInteractive({ useHandCursor: true });
-        this.stabilitasCard = this.add
-            .image(0, 0, "home.card.stabilitas")
-            .setDepth(10)
-            .setInteractive({ useHandCursor: true });
-        this.anatomiCard.on("pointerdown", () => this.changeScene());
-        this.stabilitasCard.on("pointerdown", () => this.changeScene());
+        this.menuCards = [
+            new MenuCard(this, {
+                texture: "home.card.anatomi",
+                accentColor: 0x2f68d8,
+                infoTitle: "DESKRIPSI MODUL",
+                infoDescription:
+                    "Kompetensi Dasar:\nMemahami bagian utama kapal niaga, dimensi pokok, bentuk profil, dasar bangun kapal, kulit kapal, sekat, dan pintu kedap air.",
+                infoRequirement: "Prasyarat:\nTidak ada",
+                infoMeta: "Waktu: ± 45 menit\nLevel: Dasar",
+                infoPanelSide: "left",
+                onSelect: () => this.changeScene(),
+            }),
+            new MenuCard(this, {
+                texture: "home.card.stabilitas",
+                accentColor: 0x4aa96c,
+                infoTitle: "DESKRIPSI MODUL",
+                infoDescription:
+                    "Kompetensi Dasar:\nMenghitung dan menganalisis stabilitas kapal meliputi efek pemuatan, pergeseran beban, titik GM, dan momen penegak.",
+                infoRequirement: "Prasyarat:\nTidak ada",
+                infoMeta: "Waktu: ± 60 menit\nLevel: Menengah",
+                infoPanelSide: "right",
+                onSelect: () => this.changeScene(),
+            }),
+        ];
 
-        this.leftInfoPanel = this.createInfoPanel(
-            "DESKRIPSI MODUL",
-            "Kompetensi Dasar:\nMemahami bagian utama kapal niaga, dimensi pokok, bentuk profil, dasar bangun kapal, kulit kapal, sekat, dan pintu kedap air.",
-            "Prasyarat:\nTidak ada",
-            "Waktu: ± 45 menit\nLevel: Dasar",
-            0x2f68d8,
-        );
+        this.profileCard = new ProfileCard(this);
 
-        this.rightInfoPanel = this.createInfoPanel(
-            "DESKRIPSI MODUL",
-            "Kompetensi Dasar:\nMenghitung dan menganalisis stabilitas kapal meliputi efek pemuatan, pergeseran beban, titik GM, dan momen penegak.",
-            "Prasyarat:\nTidak ada",
-            "Waktu: ± 60 menit\nLevel: Menengah",
-            0x4aa96c,
-        );
-
-        this.leftInfoPanel.setDepth(30);
-        this.rightInfoPanel.setDepth(30);
-        this.leftInfoPanel.setVisible(false);
-        this.rightInfoPanel.setVisible(false);
-        this.leftInfoPanel.setAlpha(0);
-        this.rightInfoPanel.setAlpha(0);
-
-        this.anatomiCard.on("pointerover", () => {
-            this.showInfoPanel(this.leftInfoPanel);
-            this.showCardPopup(this.anatomiCard);
-        });
-        this.anatomiCard.on("pointerout", () => {
-            this.hideInfoPanel(this.leftInfoPanel);
-            this.hideCardPopup(this.anatomiCard);
-        });
-
-        this.stabilitasCard.on("pointerover", () => {
-            this.showInfoPanel(this.rightInfoPanel);
-            this.showCardPopup(this.stabilitasCard);
-        });
-        this.stabilitasCard.on("pointerout", () => {
-            this.hideInfoPanel(this.rightInfoPanel);
-            this.hideCardPopup(this.stabilitasCard);
-        });
-
-        const profile = this.createProfilePanel();
-        this.profilePanel = profile.panel;
-        this.profileArea = profile.profileArea;
-        this.profileAvatar = profile.avatar;
-
-        const score = this.createScoreCard();
-        this.scoreCard = score.panel;
-        this.scoreTitle = score.title;
-        this.scoreText = score.scoreText;
-        this.scoreSubText = score.scoreSubText;
-        this.scoreRing = score.ring;
-
-        this.badgePanel = this.createBadgePanel();
         this.bottomInfoBar = this.add.image(0, 0, "home.bar.info");
 
         const exitButton = new ButtonImage(this, {
@@ -190,257 +141,8 @@ export class MainMenu extends Scene {
         }
     }
 
-    private createInfoPanel(
-        title: string,
-        desc: string,
-        requirement: string,
-        meta: string,
-        accentColor: number,
-    ) {
-        const panel = this.add.container(0, 0);
-        const bg = this.add
-            .rectangle(0, 0, 248, 208, 0xffffff, 0.96)
-            .setStrokeStyle(3, accentColor, 0.95)
-            .setOrigin(0.5)
-            .setDepth(15);
-
-        const titleText = this.add
-            .text(-100, -76, title, {
-                fontFamily: "Arial Black",
-                fontSize: 18,
-                color: `#${accentColor.toString(16).padStart(6, "0")}`,
-            })
-            .setOrigin(0, 0.5)
-            .setDepth(16);
-
-        const descText = this.add
-            .text(-100, -48, desc, {
-                fontFamily: "Arial",
-                fontSize: 11,
-                color: "#28466d",
-                wordWrap: { width: 195 },
-                lineSpacing: 4,
-            })
-            .setDepth(16);
-
-        const reqText = this.add
-            .text(-100, 42, requirement, {
-                fontFamily: "Arial",
-                fontSize: 11,
-                color: "#28466d",
-                wordWrap: { width: 195 },
-                lineSpacing: 4,
-            })
-            .setDepth(16);
-
-        const metaText = this.add
-            .text(-100, 90, meta, {
-                fontFamily: "Arial Bold",
-                fontSize: 11,
-                color: "#143a84",
-                lineSpacing: 8,
-            })
-            .setDepth(16);
-
-        panel.add([bg, titleText, descText, reqText, metaText]);
-
-        return panel;
-    }
-
-    private createProfilePanel() {
-        const panel = this.add.container(0, 0);
-        const bg = this.add
-            .rectangle(0, 0, 280, 378, 0xf8fbff, 0.96)
-            .setStrokeStyle(3, 0xb8d4f4, 1)
-            .setOrigin(0.5);
-
-        const title = this.add
-            .text(-104, -154, "PROFIL TARUNA", {
-                fontFamily: "Arial Black",
-                fontSize: 18,
-                color: "#1d4b97",
-            })
-            .setOrigin(0, 0.5);
-
-        const profileArea = this.add
-            .circle(0, -76, 58, 0xe8f2ff, 1)
-            .setStrokeStyle(3, 0xb8d4f4, 1);
-
-        const avatar = this.add
-            .image(0, -76, "profile.human")
-            .setOrigin(0.5);
-
-        const name = this.add
-            .text(0, 12, "Raka Samudra", {
-                fontFamily: "Arial Black",
-                fontSize: 22,
-                color: "#1d4b97",
-            })
-            .setOrigin(0.5);
-
-        const major = this.add
-            .text(0, 42, "Cadet Nautika", {
-                fontFamily: "Arial",
-                fontSize: 16,
-                color: "#2b5ca8",
-            })
-            .setOrigin(0.5);
-
-        const idBg = this.add
-            .rectangle(0, 78, 180, 34, 0xe6f0ff, 1)
-            .setStrokeStyle(2, 0xc7daf7, 1)
-            .setOrigin(0.5);
-
-        const idText = this.add
-            .text(0, 78, "NTP. 123456789012", {
-                fontFamily: "Arial Black",
-                fontSize: 16,
-                color: "#1d4b97",
-            })
-            .setOrigin(0.5);
-
-        panel.add([bg, title, profileArea, avatar, name, major, idBg, idText]);
-
-        return { panel, profileArea, avatar };
-    }
-
-    private createScoreCard() {
-        const panel = this.add.container(0, 0);
-        const bg = this.add
-            .rectangle(0, 0, 280, 186, 0xf8fbff, 0.96)
-            .setStrokeStyle(3, 0xb8d4f4, 1)
-            .setOrigin(0.5);
-
-        const title = this.add
-            .text(-102, -58, "GREEN SCORE", {
-                fontFamily: "Arial Black",
-                fontSize: 18,
-                color: "#1f8d52",
-            })
-            .setOrigin(0, 0.5);
-
-        const ring = this.add.graphics();
-        const scoreText = this.add
-            .text(0, 6, "78", {
-                fontFamily: "Arial Black",
-                fontSize: 34,
-                color: "#1f8d52",
-            })
-            .setOrigin(0.5);
-
-        const scoreSubText = this.add
-            .text(0, 34, "/100", {
-                fontFamily: "Arial",
-                fontSize: 18,
-                color: "#1f8d52",
-            })
-            .setOrigin(0.5);
-
-        panel.add([bg, title, ring, scoreText, scoreSubText]);
-
-        return { panel, title, ring, scoreText, scoreSubText };
-    }
-
-    private createBadgePanel() {
-        const panel = this.add.container(0, 0);
-        const bg = this.add
-            .rectangle(0, 0, 330, 106, 0xf6fbff, 0.95)
-            .setStrokeStyle(3, 0xb8d4f4, 1)
-            .setOrigin(0.5);
-
-        const title = this.add
-            .text(-138, -34, "KOLEKSI LENCANA", {
-                fontFamily: "Arial Black",
-                fontSize: 18,
-                color: "#1d4b97",
-            })
-            .setOrigin(0, 0.5);
-
-        panel.add([bg, title]);
-
-        const colors = [0xcc7a1d, 0xb5becb, 0xd39d1f, 0xdfe8f2, 0xdfe8f2];
-        const labels = ["⚙", "▣", "⚖", "🔒", "🔒"];
-
-        colors.forEach((color, index) => {
-            const x = -112 + index * 56;
-            const badge = this.add
-                .circle(x, 16, 22, color, 1)
-                .setStrokeStyle(3, 0x8ea9c5, 0.9);
-            const text = this.add
-                .text(x, 16, labels[index], {
-                    fontFamily: "Arial Black",
-                    fontSize: 22,
-                    color: index >= 3 ? "#91a4bc" : "#ffffff",
-                })
-                .setOrigin(0.5);
-            panel.add([badge, text]);
-        });
-
-        return panel;
-    }
-
     private handleResize(gameSize: Phaser.Structs.Size) {
         this.layout(gameSize.width, gameSize.height);
-    }
-
-    private showCardPopup(card: GameObjects.Image) {
-        const baseY = card.getData("baseY") as number;
-        const baseWidth = card.getData("baseWidth") as number;
-        const baseHeight = card.getData("baseHeight") as number;
-
-        this.tweens.killTweensOf(card);
-
-        this.tweens.add({
-            targets: card,
-            displayWidth: baseWidth * 1.06,
-            displayHeight: baseHeight * 1.06,
-            y: baseY - 12,
-            duration: 180,
-            ease: "Quad.Out",
-        });
-    }
-
-    private hideCardPopup(card: GameObjects.Image) {
-        const baseY = card.getData("baseY") as number;
-        const baseWidth = card.getData("baseWidth") as number;
-        const baseHeight = card.getData("baseHeight") as number;
-
-        this.tweens.killTweensOf(card);
-
-        this.tweens.add({
-            targets: card,
-            displayWidth: baseWidth,
-            displayHeight: baseHeight,
-            y: baseY,
-            duration: 180,
-            ease: "Quad.Out",
-        });
-    }
-
-    private showInfoPanel(panel: GameObjects.Container) {
-        this.tweens.killTweensOf(panel);
-        panel.setVisible(true);
-
-        this.tweens.add({
-            targets: panel,
-            alpha: 1,
-            duration: 160,
-            ease: "Quad.Out",
-        });
-    }
-
-    private hideInfoPanel(panel: GameObjects.Container) {
-        this.tweens.killTweensOf(panel);
-
-        this.tweens.add({
-            targets: panel,
-            alpha: 0,
-            duration: 140,
-            ease: "Quad.Out",
-            onComplete: () => {
-                panel.setVisible(false);
-            },
-        });
     }
 
     private playIntroAnimation() {
@@ -457,14 +159,7 @@ export class MainMenu extends Scene {
                 scaleX: number;
                 scaleY: number;
             }
-        > = [
-            this.logo,
-            this.welcomeTitle,
-            this.welcomeSubtitle,
-            this.profilePanel,
-            this.scoreCard,
-            this.badgePanel,
-        ];
+        > = [this.logo, this.welcomeTitle, this.welcomeSubtitle];
 
         animatedItems.forEach((item, index) => {
             item.alpha = 0;
@@ -484,59 +179,16 @@ export class MainMenu extends Scene {
             });
         });
 
-        [this.anatomiCard, this.stabilitasCard].forEach((card, index) => {
-            const baseY = card.getData("baseY") as number;
-            const baseWidth = card.getData("baseWidth") as number;
-            const baseHeight = card.getData("baseHeight") as number;
+        this.profileCard.playIntroAnimation(3 * 80);
 
-            card.setAlpha(0);
-            card.setY(baseY + 18);
-            card.setDisplaySize(baseWidth * 0.96, baseHeight * 0.96);
-
-            this.tweens.add({
-                targets: card,
-                alpha: 1,
-                y: baseY,
-                displayWidth: baseWidth,
-                displayHeight: baseHeight,
-                duration: 500,
-                delay: (index + 3) * 80,
-                ease: "Back.Out",
-            });
+        this.menuCards.forEach((card, index) => {
+            card.playIntroAnimation((index + 3) * 80);
         });
-    }
-
-    private drawScoreRing(
-        centerX: number,
-        centerY: number,
-        radius: number,
-        value: number,
-    ) {
-        this.scoreRing.clear();
-        this.scoreRing.lineStyle(12, 0xd9f0df, 1);
-        this.scoreRing.beginPath();
-        this.scoreRing.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        this.scoreRing.strokePath();
-
-        this.scoreRing.lineStyle(12, 0x2aa658, 1);
-        this.scoreRing.beginPath();
-        this.scoreRing.arc(
-            centerX,
-            centerY,
-            radius,
-            (-90 * Math.PI) / 180,
-            ((-90 + 360 * value) * Math.PI) / 180,
-        );
-        this.scoreRing.strokePath();
     }
 
     private layout(width: number, height: number) {
         const centerX = width / 2;
         const centerY = height / 2;
-        const topPadding = Math.max(18, height * 0.022);
-        const contentTop = topPadding + 92;
-        const cardScale = Math.min(width / 1850, height / 1120, 0.82);
-        const rightScale = Math.min(width / 1500, height / 960, 1);
 
         this.background.setPosition(centerX, centerY);
         this.background.setDisplaySize(width, height);
@@ -544,7 +196,7 @@ export class MainMenu extends Scene {
         const headerPaddingX = Math.max(12, width * 0.012);
         const headerPaddingTop = Math.max(10, height * 0.012);
         const headerInnerPaddingX = Math.max(20, width * 0.014);
-        const headerHeight = Math.max(72, height * 0.115);
+        const headerHeight = Math.max(58, height * 0.088);
         const headerRadius = Math.min(60, headerHeight * 0.6);
         const headerWidth = width - headerPaddingX * 2;
 
@@ -566,11 +218,61 @@ export class MainMenu extends Scene {
             headerRadius,
         );
 
+        // Cards (and the profile column) are sized to fit the vertical band that's
+        // actually free — below the header/welcome text, above the bottom bar —
+        // rather than a flat % of window height, so shrinking the header/welcome
+        // text directly reclaims room for the content below it.
+        const contentTop =
+            headerPaddingTop + headerHeight + Math.max(16, height * 0.02);
+        const welcomeTitleY = contentTop + 24;
+        const welcomeSubtitleY = contentTop + 52;
+        const bottomBarHeight = Math.max(45, height * 0.2);
+        const bottomBarTopY = height - 60 - bottomBarHeight / 2;
+
+        const bandTop = welcomeSubtitleY + 22;
+        const bandBottom = bottomBarTopY - 28;
+        const availableBandHeight = Math.max(220, bandBottom - bandTop);
+
+        const cardsZoneLeft = Math.max(headerPaddingX, width * 0.03);
+        const cardsZoneRight = width * 0.78;
+        const cardsZoneWidth = cardsZoneRight - cardsZoneLeft;
+        const cardGap = Math.max(24, width * 0.016);
+        const cardAspect = 1536 / 1024; // real card artwork aspect ratio (h / w)
+
+        let cardWidth = (cardsZoneWidth - cardGap) / 2;
+        let cardHeight = cardWidth * cardAspect;
+
+        if (cardHeight > availableBandHeight) {
+            cardHeight = availableBandHeight;
+            cardWidth = cardHeight / cardAspect;
+        }
+
+        const cardScale = cardWidth / 420;
+        const cardsBlockWidth = cardWidth * 2 + cardGap;
+        const cardsBlockLeft =
+            cardsZoneLeft + (cardsZoneWidth - cardsBlockWidth) / 2;
+        const cardsBlockCenterX = cardsBlockLeft + cardsBlockWidth / 2;
+        const cardY = bandTop + availableBandHeight / 2;
+        const anatomiX = cardsBlockLeft + cardWidth / 2;
+        const stabilitasX = anatomiX + cardWidth + cardGap;
+
+        const rightColumnMargin = 15;
+        const rightColumnLeft = cardsZoneRight + Math.max(16, width * 0.015);
+        const rightColumnWidth = width - rightColumnLeft - rightColumnMargin;
+        const rightColumnCenterX = rightColumnLeft + rightColumnWidth / 2;
+        const rightScale = Math.min(
+            width / 1500,
+            height / 960,
+            1.15,
+            (rightColumnWidth - rightColumnMargin) / this.profileCard.width,
+            availableBandHeight / this.profileCard.totalHeight,
+        );
+
         this.logo.setPosition(
             headerPaddingX + headerInnerPaddingX,
             headerPaddingTop + headerHeight / 2 + 4,
         );
-        this.logo.setDisplaySize(250 * cardScale, 90         * cardScale);
+        this.logo.setDisplaySize(180 * cardScale, 65 * cardScale);
 
         const topButtonSize = Math.max(42, Math.min(52, headerHeight * 0.62));
         let currentRightX = width - headerPaddingX - headerInnerPaddingX;
@@ -590,56 +292,37 @@ export class MainMenu extends Scene {
                 currentRightX -= buttonWidth;
             });
 
-        this.welcomeTitle.setPosition(width * 0.43, contentTop + 36);
-        this.welcomeTitle.setFontSize(Math.max(22, 34 * cardScale));
+        this.welcomeTitle.setPosition(cardsBlockCenterX, welcomeTitleY);
+        this.welcomeTitle.setFontSize(Math.max(26, 36 * cardScale));
 
-        this.welcomeSubtitle.setPosition(width * 0.43, contentTop + 80);
-        this.welcomeSubtitle.setFontSize(Math.max(14, 18 * cardScale));
+        this.welcomeSubtitle.setPosition(cardsBlockCenterX, welcomeSubtitleY);
+        this.welcomeSubtitle.setFontSize(Math.max(15, 19 * cardScale));
+        this.welcomeSubtitle.setWordWrapWidth(cardsBlockWidth * 0.94);
 
-        const cardY = centerY + 30;
-        const cardWidth = 420 * cardScale;
-        const cardHeight = 600 * cardScale;
+        // Hover panels open outward, away from the neighboring card, offset by a
+        // small padding, instead of overlaying the artwork: the first card's panel
+        // opens to its left, the second card's panel opens to its right.
+        const infoPanelScale = Math.max(0.78, cardScale * 0.85);
+        const infoPanelPadding = 5;
 
-        this.anatomiCard.setPosition(width * 0.315, cardY);
-        this.anatomiCard.setDisplaySize(cardWidth, cardHeight);
-        this.anatomiCard.setData("baseY", cardY);
-        this.anatomiCard.setData("baseWidth", cardWidth);
-        this.anatomiCard.setData("baseHeight", cardHeight);
-
-        this.stabilitasCard.setPosition(width * 0.49, cardY);
-        this.stabilitasCard.setDisplaySize(cardWidth, cardHeight);
-        this.stabilitasCard.setData("baseY", cardY);
-        this.stabilitasCard.setData("baseWidth", cardWidth);
-        this.stabilitasCard.setData("baseHeight", cardHeight);
-
-        this.leftInfoPanel.setPosition(width * 0.12, cardY + 6);
-        this.leftInfoPanel.setScale(Math.max(0.68, cardScale * 0.88));
-
-        this.rightInfoPanel.setPosition(width * 0.62, cardY + 52);
-        this.rightInfoPanel.setScale(Math.max(0.68, cardScale * 0.88));
-
-        this.profilePanel.setPosition(width * 0.865, centerY - 76);
-        this.profilePanel.setScale(Math.max(0.76, rightScale * 0.92));
-
-        this.scoreCard.setPosition(width * 0.865, centerY + 146);
-        this.scoreCard.setScale(Math.max(0.76, rightScale * 0.92));
-
-        const scoreCenterX = this.scoreCard.x;
-        const scoreCenterY = this.scoreCard.y + 18 * this.scoreCard.scaleY;
-        this.drawScoreRing(
-            scoreCenterX,
-            scoreCenterY,
-            48 * rightScale * 0.92,
-            0.78,
+        this.menuCards[0].layout(
+            anatomiX,
+            cardY,
+            cardWidth,
+            cardHeight,
+            infoPanelScale,
+            infoPanelPadding,
         );
-        this.scoreTitle.setPosition(-102, -58);
-        this.scoreText.setPosition(0, 8);
-        this.scoreText.setFontSize(Math.max(24, 34 * rightScale));
-        this.scoreSubText.setPosition(0, 34);
-        this.scoreSubText.setFontSize(Math.max(13, 18 * rightScale));
+        this.menuCards[1].layout(
+            stabilitasX,
+            cardY,
+            cardWidth,
+            cardHeight,
+            infoPanelScale,
+            infoPanelPadding,
+        );
 
-        this.badgePanel.setPosition(width * 0.8, height - 112);
-        this.badgePanel.setScale(Math.max(0.72, rightScale * 0.92));
+        this.profileCard.layout(rightColumnCenterX, bandTop, rightScale);
 
         this.bottomInfoBar.setPosition(width * 0.47, height - 60);
         this.bottomInfoBar.setDisplaySize(
@@ -655,11 +338,6 @@ export class MainMenu extends Scene {
         this.bottomButtons[0].setSize(bottomButtonWidth, bottomButtonHeight);
         this.bottomButtons[1].setPosition(width - 150, height - 60);
         this.bottomButtons[1].setSize(bottomButtonWidth, bottomButtonHeight);
-
-        const profileRadius = 58;
-
-        this.profileArea.setRadius(profileRadius);
-        this.profileAvatar.setDisplaySize(profileRadius * 2, profileRadius * 2);
 
         this.exitModal.layout(centerX, centerY, width, height);
     }

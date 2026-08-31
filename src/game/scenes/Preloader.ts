@@ -1,7 +1,6 @@
 import { GameObjects, Scene, Scale } from "phaser";
 
-export class Preloader extends Scene
-{
+export class Preloader extends Scene {
     private background!: GameObjects.Image;
     private logo!: GameObjects.Image;
     private progressFrame!: Phaser.GameObjects.Graphics;
@@ -112,6 +111,11 @@ export class Preloader extends Scene
 
         this.input.once("pointerdown", () => {
             if (this.isReadyToContinue) {
+                // Fullscreen requires a user gesture, so it must be requested
+                // here (inside the click handler), not later in MainMenu.
+                if (this.scale.fullscreen.available && !this.scale.isFullscreen) {
+                    this.scale.startFullscreen();
+                }
                 this.scene.start("MainMenu");
             }
         });
@@ -143,17 +147,6 @@ export class Preloader extends Scene
         this.progressFill.setAlpha(0);
         this.progressIntroScale = 0.9;
 
-        this.progressText.setAlpha(0);
-        this.progressText.setScale(0.88);
-        this.progressText.setAngle(2);
-
-        this.continueText.setAlpha(0);
-        this.continueText.setScale(0.9);
-        this.continueText.setAngle(-2);
-
-        this.touchButton.setAlpha(0);
-        this.touchButton.setScale(0.9);
-
         this.tweens.add({
             targets: this.logo,
             alpha: 1,
@@ -161,15 +154,15 @@ export class Preloader extends Scene
             scaleY: logoFinalScaleY,
             angle: 0,
             duration: 1000,
-            ease: 'Back.Out',
-            delay: 0
+            ease: "Back.Out",
+            delay: 0,
         });
 
         this.tweens.add({
             targets: this,
             progressIntroScale: 1,
             duration: 1000,
-            ease: 'Back.Out',
+            ease: "Back.Out",
             delay: 100,
             onStart: () => {
                 this.progressFrame.setAlpha(1);
@@ -177,46 +170,15 @@ export class Preloader extends Scene
             },
             onUpdate: () => {
                 this.layout(this.scale.width, this.scale.height);
-            }
-        });
-
-        this.tweens.add({
-            targets: this.progressText,
-            alpha: 1,
-            scaleX: 1,
-            scaleY: 1,
-            angle: 0,
-            duration: 1000,
-            ease: 'Back.Out',
-            delay: 200
-        });
-
-        this.tweens.add({
-            targets: this.continueText,
-            alpha: 0,
-            scaleX: 1,
-            scaleY: 1,
-            angle: 0,
-            duration: 1000,
-            ease: 'Back.Out',
-            delay: 300
-        });
-
-        this.tweens.add({
-            targets: this.touchButton,
-            alpha: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 1000,
-            ease: 'Back.Out',
-            delay: 320
+            },
         });
     }
 
     private layout(width: number, height: number) {
         const centerX = width / 2;
         const centerY = height / 2;
-        const frameWidth = Math.min(width * 0.62, 680) * this.progressIntroScale;
+        const frameWidth =
+            Math.min(width * 0.62, 680) * this.progressIntroScale;
         const frameHeight = 38 * this.progressIntroScale;
         const cornerRadius = frameHeight / 2;
         const innerPadding = 3;
@@ -268,23 +230,32 @@ export class Preloader extends Scene
         }
 
         this.progressText.setPosition(centerX, barY + frameHeight + 42);
-        this.continueText.setPosition(centerX, barY + frameHeight + 90);
 
-        const touchBaseY = barY + frameHeight + 42;
+        const touchButtonSizeW = 250;
+        const touchButtonSizeH = 270;
+        const touchButtonGap = 32;
+        const continueTextGap = 28;
+
+        const touchBaseY =
+            barY + frameHeight + touchButtonGap + touchButtonSizeW / 2;
         const currentTouchAlpha = this.touchButton.alpha;
         const isTouchAnimating = this.tweens.isTweening(this.touchButton);
 
-        if (!isTouchAnimating || currentTouchAlpha <= 0)
-        {
+        if (!isTouchAnimating || currentTouchAlpha <= 0) {
             this.touchButton.setPosition(centerX, touchBaseY);
-        }
-        else
-        {
-            const animatedOffsetY = this.touchButton.y - ((this.touchButton.getData("baseY") as number) ?? touchBaseY);
+        } else {      
+            const animatedOffsetY =
+                this.touchButton.y -
+                ((this.touchButton.getData("baseY") as number) ?? touchBaseY);
             this.touchButton.setPosition(centerX, touchBaseY + animatedOffsetY);
         }
 
         this.touchButton.setData("baseY", touchBaseY);
-        this.touchButton.setDisplaySize(72, 72);
+        this.touchButton.setDisplaySize(touchButtonSizeW, touchButtonSizeH);
+
+        this.continueText.setPosition(
+            centerX,
+            touchBaseY + touchButtonSizeW / 2 + continueTextGap,
+        );
     }
 }
