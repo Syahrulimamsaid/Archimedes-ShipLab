@@ -61,7 +61,7 @@ export class MainMenu extends Scene {
                 infoRequirement: "Prasyarat:\nTidak ada",
                 infoMeta: "Waktu: ± 45 menit\nLevel: Dasar",
                 infoPanelSide: "left",
-                onSelect: () => this.changeScene(),
+                onSelect: () => this.scene.start("AnatomiStruktur"),
             }),
             new MenuCard(this, {
                 texture: "home.card.stabilitas",
@@ -72,7 +72,7 @@ export class MainMenu extends Scene {
                 infoRequirement: "Prasyarat:\nTidak ada",
                 infoMeta: "Waktu: ± 60 menit\nLevel: Menengah",
                 infoPanelSide: "right",
-                onSelect: () => this.changeScene(),
+                onSelect: () => this.scene.start("SimulatorStabilitas"),
             }),
         ];
 
@@ -126,10 +126,6 @@ export class MainMenu extends Scene {
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
-    }
-
-    changeScene() {
-        this.scene.start("Game");
     }
 
     moveLogo(callback: ({ x, y }: { x: number; y: number }) => void) {
