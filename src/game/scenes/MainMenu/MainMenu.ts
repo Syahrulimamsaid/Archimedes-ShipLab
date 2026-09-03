@@ -15,7 +15,7 @@ export class MainMenu extends Scene {
     private menuCards: MenuCard[] = [];
     private profileCard!: ProfileCard;
     private bottomInfoBar!: GameObjects.Image;
-    private exitModal!: ModalExit;
+    private exitModal!: ModalExit; 
 
     private topButtons: ButtonImage[] = [];
     private bottomButtons: ButtonImage[] = [];
@@ -193,11 +193,11 @@ export class MainMenu extends Scene {
         const headerPaddingTop = Math.max(10, height * 0.012);
         const headerInnerPaddingX = Math.max(20, width * 0.014);
         const headerHeight = Math.max(58, height * 0.088);
-        const headerRadius = Math.min(60, headerHeight * 0.6);
+        const headerRadius = headerHeight / 2;
         const headerWidth = width - headerPaddingX * 2;
 
         this.topBar.clear();
-        this.topBar.fillStyle(0x0d4fa3, 0.88);
+        this.topBar.fillStyle(0x0d4fa3, 1);
         this.topBar.lineStyle(2, 0xffffff, 0.22);
         this.topBar.fillRoundedRect(
             headerPaddingX,
@@ -220,12 +220,12 @@ export class MainMenu extends Scene {
         // text directly reclaims room for the content below it.
         const contentTop =
             headerPaddingTop + headerHeight + Math.max(16, height * 0.02);
-        const welcomeTitleY = contentTop + 24;
-        const welcomeSubtitleY = contentTop + 52;
+        const welcomeTitleY = contentTop + 60;
+        const welcomeSubtitleY = contentTop + 90;
         const bottomBarHeight = Math.max(45, height * 0.2);
         const bottomBarTopY = height - 60 - bottomBarHeight / 2;
 
-        const bandTop = welcomeSubtitleY + 22;
+        const bandTop = welcomeSubtitleY + 60;
         const bandBottom = bottomBarTopY - 28;
         const availableBandHeight = Math.max(220, bandBottom - bandTop);
 
@@ -248,7 +248,10 @@ export class MainMenu extends Scene {
         const cardsBlockLeft =
             cardsZoneLeft + (cardsZoneWidth - cardsBlockWidth) / 2;
         const cardsBlockCenterX = cardsBlockLeft + cardsBlockWidth / 2;
-        const cardY = bandTop + availableBandHeight / 2;
+        // Cards sit right below the welcome text (top-aligned) rather than
+        // centered in the whole band, so leftover vertical space collects
+        // below them instead of splitting evenly above/below.
+        const cardY = bandTop + cardHeight / 2;
         const anatomiX = cardsBlockLeft + cardWidth / 2;
         const stabilitasX = anatomiX + cardWidth + cardGap;
 
@@ -256,12 +259,17 @@ export class MainMenu extends Scene {
         const rightColumnLeft = cardsZoneRight + Math.max(16, width * 0.015);
         const rightColumnWidth = width - rightColumnLeft - rightColumnMargin;
         const rightColumnCenterX = rightColumnLeft + rightColumnWidth / 2;
+        // The profile column starts as high as the welcome text (not down at
+        // the cards' bandTop) and stretches almost to the bottom bar, so it
+        // reads taller than the cards instead of matching their height.
+        const profileBandTop = contentTop;
+        const profileAvailableHeight = Math.max(220, bandBottom - profileBandTop);
         const rightScale = Math.min(
             width / 1500,
             height / 960,
             1.15,
             (rightColumnWidth - rightColumnMargin) / this.profileCard.width,
-            availableBandHeight / this.profileCard.totalHeight,
+            profileAvailableHeight / this.profileCard.totalHeight,
         );
 
         this.logo.setPosition(
@@ -318,21 +326,21 @@ export class MainMenu extends Scene {
             infoPanelPadding,
         );
 
-        this.profileCard.layout(rightColumnCenterX, bandTop, rightScale);
+        this.profileCard.layout(rightColumnCenterX, profileBandTop, rightScale);
 
         this.bottomInfoBar.setPosition(width * 0.47, height - 60);
         this.bottomInfoBar.setDisplaySize(
             Math.min(width * 0.35, 640),
-            Math.max(45, height * 0.2),
+            Math.max(40, height * 0.18),
         );
 
         const bottomButtonScale = Math.max(0.82, cardScale * 0.92);
         const bottomButtonWidth = 350 * bottomButtonScale;
         const bottomButtonHeight = 120 * bottomButtonScale;
 
-        this.bottomButtons[0].setPosition(150, height - 60);
+        this.bottomButtons[0].setPosition(180, height - 60);
         this.bottomButtons[0].setSize(bottomButtonWidth, bottomButtonHeight);
-        this.bottomButtons[1].setPosition(width - 150, height - 60);
+        this.bottomButtons[1].setPosition(width - 180, height - 60);
         this.bottomButtons[1].setSize(bottomButtonWidth, bottomButtonHeight);
 
         this.exitModal.layout(centerX, centerY, width, height);
