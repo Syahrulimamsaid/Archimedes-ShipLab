@@ -1,4 +1,5 @@
 import { AnatomiStruktur } from "./scenes/AnatomiStruktur/AnatomiStruktur";
+import { QuizScene } from "./scenes/AnatomiStruktur/QuizScene";
 import { Boot } from "./scenes/Boot";
 import { GameOver } from "./scenes/GameOver";
 import { Game as MainGame } from "./scenes/Game";
@@ -28,6 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
         Preloader,
         MainMenu,
         AnatomiStruktur,
+        QuizScene,
         SimulatorStabilitas,
         MainGame,
         GameOver,

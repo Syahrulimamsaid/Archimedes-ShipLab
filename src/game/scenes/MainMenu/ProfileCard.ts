@@ -1,9 +1,15 @@
 import { Actions, GameObjects, Scene } from "phaser";
 
+import { BadgeId, isBadgeUnlocked } from "../../BadgeState";
+
 interface BadgeConfig {
     icon: string;
     color: number;
     locked?: boolean;
+    /** When set, the badge's locked state is looked up from BadgeState
+     * instead of the static `locked` flag, so it unlocks live once earned
+     * (e.g. by passing the watertight-door quiz in AnatomiStruktur). */
+    id?: BadgeId;
 }
 
 export class ProfileCard {
@@ -23,7 +29,7 @@ export class ProfileCard {
         { icon: "⚙", color: 0xcc7a1d },
         { icon: "▣", color: 0xb5becb },
         { icon: "⚖", color: 0xd39d1f },
-        { icon: "🔒", color: 0xdfe8f2, locked: true },
+        { icon: "🔍", color: 0x2f68d8, id: "ship-construction-surveyor" },
         { icon: "🔒", color: 0xdfe8f2, locked: true },
     ];
 
@@ -301,15 +307,16 @@ export class ProfileCard {
         const startX = -rowWidth / 2;
 
         this.badges.forEach((badgeConfig, index) => {
+            const locked = badgeConfig.id ? !isBadgeUnlocked(badgeConfig.id) : (badgeConfig.locked ?? false);
             const x = startX + index * badgeGap;
             const badge = this.scene.add
-                .circle(x, badgeY, badgeRadius, badgeConfig.color, 1)
+                .circle(x, badgeY, badgeRadius, locked ? 0xdfe8f2 : badgeConfig.color, 1)
                 .setStrokeStyle(3, 0x8ea9c5, 0.9);
             const text = this.scene.add
-                .text(x, badgeY, badgeConfig.icon, {
+                .text(x, badgeY, locked ? "🔒" : badgeConfig.icon, {
                     fontFamily: "Arial Black",
                     fontSize: 24,
-                    color: badgeConfig.locked ? "#91a4bc" : "#ffffff",
+                    color: locked ? "#91a4bc" : "#ffffff",
                 })
                 .setOrigin(0.5);
             panel.add([badge, text]);

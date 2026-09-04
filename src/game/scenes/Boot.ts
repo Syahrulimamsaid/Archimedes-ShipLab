@@ -55,7 +55,7 @@ export class Boot extends Scene {
             "assets/AnatomiStructure/btn_kembali.png",
         );
         this.load.image(
-            "AnatomiStructure.btn.kembali",
+            "AnatomiStructure.card.infoPintu",
             "assets/AnatomiStructure/card_info_pintu.png",
         );
     }
