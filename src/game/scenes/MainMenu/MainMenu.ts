@@ -1,21 +1,19 @@
 import { GameObjects, Scale, Scene } from "phaser";
 import { ButtonImage } from '../../../component/Button/ButtonImage';
 import { EventBus } from '../../EventBus';
+import { CharacterPanel } from './CharacterPanel';
 import { MenuCard } from './MenuCard';
 import { ModalExit } from './ModalExit';
-import { ProfileCard } from './ProfileCard';
 
 export class MainMenu extends Scene {
     private background!: GameObjects.Image;
-    private topBar!: GameObjects.Graphics;
-    private logo!: GameObjects.Image;
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
 
     private menuCards: MenuCard[] = [];
-    private profileCard!: ProfileCard;
+    private characterPanel!: CharacterPanel;
     private bottomInfoBar!: GameObjects.Image;
-    private exitModal!: ModalExit; 
+    private exitModal!: ModalExit;
 
     private topButtons: ButtonImage[] = [];
     private bottomButtons: ButtonImage[] = [];
@@ -27,8 +25,6 @@ export class MainMenu extends Scene {
 
     create() {
         this.background = this.add.image(0, 0, "background.home");
-        this.topBar = this.add.graphics();
-        this.logo = this.add.image(0, 0, "logo").setOrigin(0, 0.5).setDepth(20);
 
         this.welcomeTitle = this.add
             .text(0, 0, "Selamat Datang, Taruna!", {
@@ -54,29 +50,19 @@ export class MainMenu extends Scene {
         this.menuCards = [
             new MenuCard(this, {
                 texture: "home.card.anatomi",
-                accentColor: 0x2f68d8,
-                infoTitle: "DESKRIPSI MODUL",
-                infoDescription:
-                    "Kompetensi Dasar:\nMemahami bagian utama kapal niaga, dimensi pokok, bentuk profil, dasar bangun kapal, kulit kapal, sekat, dan pintu kedap air.",
-                infoRequirement: "Prasyarat:\nTidak ada",
-                infoMeta: "Waktu: ± 45 menit\nLevel: Dasar",
-                infoPanelSide: "left",
                 onSelect: () => this.scene.start("AnatomiStruktur"),
             }),
             new MenuCard(this, {
                 texture: "home.card.stabilitas",
-                accentColor: 0x4aa96c,
-                infoTitle: "DESKRIPSI MODUL",
-                infoDescription:
-                    "Kompetensi Dasar:\nMenghitung dan menganalisis stabilitas kapal meliputi efek pemuatan, pergeseran beban, titik GM, dan momen penegak.",
-                infoRequirement: "Prasyarat:\nTidak ada",
-                infoMeta: "Waktu: ± 60 menit\nLevel: Menengah",
-                infoPanelSide: "right",
                 onSelect: () => this.scene.start("SimulatorStabilitas"),
+            }),
+            new MenuCard(this, {
+                texture: "home.card.hasil",
+                onSelect: () => this.scene.start("HasilUmpanBalik"),
             }),
         ];
 
-        this.profileCard = new ProfileCard(this);
+        this.characterPanel = new CharacterPanel(this);
 
         this.bottomInfoBar = this.add.image(0, 0, "home.bar.info");
 
@@ -128,15 +114,6 @@ export class MainMenu extends Scene {
         });
     }
 
-    moveLogo(callback: ({ x, y }: { x: number; y: number }) => void) {
-        if (callback) {
-            callback({
-                x: Math.floor(this.logo.x),
-                y: Math.floor(this.logo.y),
-            });
-        }
-    }
-
     private handleResize(gameSize: Phaser.Structs.Size) {
         this.layout(gameSize.width, gameSize.height);
     }
@@ -155,7 +132,7 @@ export class MainMenu extends Scene {
                 scaleX: number;
                 scaleY: number;
             }
-        > = [this.logo, this.welcomeTitle, this.welcomeSubtitle];
+        > = [this.welcomeTitle, this.welcomeSubtitle];
 
         animatedItems.forEach((item, index) => {
             item.alpha = 0;
@@ -175,7 +152,7 @@ export class MainMenu extends Scene {
             });
         });
 
-        this.profileCard.playIntroAnimation(3 * 80);
+        this.characterPanel.playIntroAnimation(3 * 80);
 
         this.menuCards.forEach((card, index) => {
             card.playIntroAnimation((index + 3) * 80);
@@ -190,36 +167,17 @@ export class MainMenu extends Scene {
         this.background.setDisplaySize(width, height);
 
         const headerPaddingX = Math.max(12, width * 0.012);
-        const headerPaddingTop = Math.max(10, height * 0.012);
-        const headerInnerPaddingX = Math.max(20, width * 0.014);
-        const headerHeight = Math.max(58, height * 0.088);
-        const headerRadius = headerHeight / 2;
-        const headerWidth = width - headerPaddingX * 2;
+        // No top bar anymore — just a small top-right padding for the
+        // floating exit button, and a flat top margin for the content below.
+        const topEdgePaddingX = Math.max(16, width * 0.015);
+        const topEdgePaddingY = Math.max(20, height * 0.03);
+        const topButtonSize = Math.max(42, Math.min(52, height * 0.05));
 
-        this.topBar.clear();
-        this.topBar.fillStyle(0x0d4fa3, 1);
-        this.topBar.lineStyle(2, 0xffffff, 0.22);
-        this.topBar.fillRoundedRect(
-            headerPaddingX,
-            headerPaddingTop,
-            headerWidth,
-            headerHeight,
-            headerRadius,
-        );
-        this.topBar.strokeRoundedRect(
-            headerPaddingX,
-            headerPaddingTop,
-            headerWidth,
-            headerHeight,
-            headerRadius,
-        );
-
-        // Cards (and the profile column) are sized to fit the vertical band that's
-        // actually free — below the header/welcome text, above the bottom bar —
-        // rather than a flat % of window height, so shrinking the header/welcome
-        // text directly reclaims room for the content below it.
-        const contentTop =
-            headerPaddingTop + headerHeight + Math.max(16, height * 0.02);
+        // Cards (and the character column) are sized to fit the vertical band
+        // that's actually free — below the welcome text, above the bottom bar —
+        // rather than a flat % of window height, so shrinking the welcome text
+        // directly reclaims room for the content below it.
+        const contentTop = topEdgePaddingY + topButtonSize + Math.max(16, height * 0.02);
         const welcomeTitleY = contentTop + 60;
         const welcomeSubtitleY = contentTop + 90;
         const bottomBarHeight = Math.max(45, height * 0.2);
@@ -234,8 +192,9 @@ export class MainMenu extends Scene {
         const cardsZoneWidth = cardsZoneRight - cardsZoneLeft;
         const cardGap = Math.max(24, width * 0.016);
         const cardAspect = 1536 / 1024; // real card artwork aspect ratio (h / w)
+        const cardCount = this.menuCards.length;
 
-        let cardWidth = (cardsZoneWidth - cardGap) / 2;
+        let cardWidth = (cardsZoneWidth - cardGap * (cardCount - 1)) / cardCount;
         let cardHeight = cardWidth * cardAspect;
 
         if (cardHeight > availableBandHeight) {
@@ -244,7 +203,7 @@ export class MainMenu extends Scene {
         }
 
         const cardScale = cardWidth / 420;
-        const cardsBlockWidth = cardWidth * 2 + cardGap;
+        const cardsBlockWidth = cardWidth * cardCount + cardGap * (cardCount - 1);
         const cardsBlockLeft =
             cardsZoneLeft + (cardsZoneWidth - cardsBlockWidth) / 2;
         const cardsBlockCenterX = cardsBlockLeft + cardsBlockWidth / 2;
@@ -252,34 +211,15 @@ export class MainMenu extends Scene {
         // centered in the whole band, so leftover vertical space collects
         // below them instead of splitting evenly above/below.
         const cardY = bandTop + cardHeight / 2;
-        const anatomiX = cardsBlockLeft + cardWidth / 2;
-        const stabilitasX = anatomiX + cardWidth + cardGap;
 
         const rightColumnMargin = 15;
         const rightColumnLeft = cardsZoneRight + Math.max(16, width * 0.015);
         const rightColumnWidth = width - rightColumnLeft - rightColumnMargin;
         const rightColumnCenterX = rightColumnLeft + rightColumnWidth / 2;
-        // The profile column starts as high as the welcome text (not down at
-        // the cards' bandTop) and stretches almost to the bottom bar, so it
-        // reads taller than the cards instead of matching their height.
-        const profileBandTop = contentTop;
-        const profileAvailableHeight = Math.max(220, bandBottom - profileBandTop);
-        const rightScale = Math.min(
-            width / 1500,
-            height / 960,
-            1.15,
-            (rightColumnWidth - rightColumnMargin) / this.profileCard.width,
-            profileAvailableHeight / this.profileCard.totalHeight,
-        );
 
-        this.logo.setPosition(
-            headerPaddingX + headerInnerPaddingX,
-            headerPaddingTop + headerHeight / 2 + 4,
-        );
-        this.logo.setDisplaySize(180 * cardScale, 65 * cardScale);
-
-        const topButtonSize = Math.max(42, Math.min(52, headerHeight * 0.62));
-        let currentRightX = width - headerPaddingX - headerInnerPaddingX;
+        // Exit button floats at the top-right corner directly on the
+        // background now that there's no bar behind it.
+        let currentRightX = width - topEdgePaddingX;
 
         this.topButtons
             .slice()
@@ -288,7 +228,7 @@ export class MainMenu extends Scene {
                 const buttonWidth = topButtonSize;
                 const buttonHeight = topButtonSize;
                 const buttonCenterX = currentRightX - buttonWidth / 2;
-                const buttonCenterY = headerPaddingTop + headerHeight / 2 + 2;
+                const buttonCenterY = topEdgePaddingY + buttonHeight / 2;
 
                 button.setPosition(buttonCenterX, buttonCenterY);
                 button.setSize(buttonWidth, buttonHeight);
@@ -303,30 +243,21 @@ export class MainMenu extends Scene {
         this.welcomeSubtitle.setFontSize(Math.max(15, 19 * cardScale));
         this.welcomeSubtitle.setWordWrapWidth(cardsBlockWidth * 0.94);
 
-        // Hover panels open outward, away from the neighboring card, offset by a
-        // small padding, instead of overlaying the artwork: the first card's panel
-        // opens to its left, the second card's panel opens to its right.
-        const infoPanelScale = Math.max(0.78, cardScale * 0.85);
-        const infoPanelPadding = 5;
+        this.menuCards.forEach((card, index) => {
+            const cardX = cardsBlockLeft + cardWidth / 2 + index * (cardWidth + cardGap);
+            card.layout(cardX, cardY, cardWidth, cardHeight);
+        });
 
-        this.menuCards[0].layout(
-            anatomiX,
-            cardY,
-            cardWidth,
+        // The logo sits on the same row as the welcome title; the character's
+        // height is tied directly to the cards' height so it lines up with
+        // them top-to-bottom instead of floating at its own scale.
+        this.characterPanel.layoutLogo(rightColumnCenterX, welcomeTitleY, rightColumnWidth - rightColumnMargin);
+        this.characterPanel.layoutCharacter(
+            rightColumnCenterX,
+            cardY - cardHeight / 2,
             cardHeight,
-            infoPanelScale,
-            infoPanelPadding,
+            rightColumnWidth - rightColumnMargin,
         );
-        this.menuCards[1].layout(
-            stabilitasX,
-            cardY,
-            cardWidth,
-            cardHeight,
-            infoPanelScale,
-            infoPanelPadding,
-        );
-
-        this.profileCard.layout(rightColumnCenterX, profileBandTop, rightScale);
 
         this.bottomInfoBar.setPosition(width * 0.47, height - 60);
         this.bottomInfoBar.setDisplaySize(

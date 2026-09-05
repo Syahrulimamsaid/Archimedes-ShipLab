@@ -10,6 +10,7 @@ export class Boot extends Scene {
         this.load.image("logo", "assets/logo.png");
         this.load.image("profile.human", "assets/profile.png");
         this.load.image("btn.touch", "assets/btn_touch.png");
+        this.load.image("character", "assets/character.png");
 
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(
@@ -19,6 +20,10 @@ export class Boot extends Scene {
         this.load.image(
             "home.card.stabilitas",
             "assets/home/card-simulator-stablitas.png",
+        );
+        this.load.image(
+            "home.card.hasil",
+            "assets/home/card-hasil.png",
         );
         this.load.image("home.card.profile", "assets/home/card_profile.png");
         this.load.image("home.bar.info", "assets/home/bar_info.png");
