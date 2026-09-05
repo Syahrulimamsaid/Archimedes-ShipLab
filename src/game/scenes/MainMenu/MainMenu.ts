@@ -5,12 +5,20 @@ import { ExitButton } from '../../../component/Button/ExitButton';
 import { initBgm, isBgmEnabled, toggleBgm } from '../../BgmManager';
 import { EventBus } from '../../EventBus';
 import { SFX_KEYS, playSfx } from '../../SfxManager';
+import { isModuleUnlocked, ModuleId } from '../../ModuleProgress';
 import { CharacterPanel } from './CharacterPanel';
 import { MenuCard } from './MenuCard';
 import { ModalExit } from './ModalExit';
 
+const MENU_MODULES: ModuleId[] = [
+    "anatomi-struktur",
+    "simulator-stabilitas",
+    "hasil-umpan-balik",
+];
+
 export class MainMenu extends Scene {
     private background!: GameObjects.Image;
+    private logo!: GameObjects.Image;
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
 
@@ -31,13 +39,15 @@ export class MainMenu extends Scene {
     create() {
         this.background = this.add.image(0, 0, "background.home");
 
+        this.logo = this.add.image(0, 0, "logo");
+
         this.welcomeTitle = this.add
             .text(0, 0, "Selamat Datang, Taruna!", {
                 fontFamily: "Arial Black",
                 fontSize: 34,
                 color: "#143a84",
             })
-            .setOrigin(0.5);
+            .setOrigin(0, 0.5);
 
         this.welcomeSubtitle = this.add
             .text(
@@ -50,11 +60,12 @@ export class MainMenu extends Scene {
                     color: "#244f89",
                 },
             )
-            .setOrigin(0.5);
+            .setOrigin(0, 0.5);
 
         this.menuCards = [
             new MenuCard(this, {
                 texture: "home.card.anatomi",
+                locked: !isModuleUnlocked("anatomi-struktur"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.scene.start("AnatomiStruktur");
@@ -62,6 +73,7 @@ export class MainMenu extends Scene {
             }),
             new MenuCard(this, {
                 texture: "home.card.stabilitas",
+                locked: !isModuleUnlocked("simulator-stabilitas"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.scene.start("SimulatorStabilitas");
@@ -69,6 +81,7 @@ export class MainMenu extends Scene {
             }),
             new MenuCard(this, {
                 texture: "home.card.hasil",
+                locked: !isModuleUnlocked("hasil-umpan-balik"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.scene.start("HasilUmpanBalik");
@@ -127,12 +140,15 @@ export class MainMenu extends Scene {
             this.scene.start("Preloader"),
         );
 
+        this.refreshModuleLocks();
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
 
         this.playIntroAnimation();
 
         EventBus.emit("current-scene-ready", this);
+
+        this.events.on("wake", () => this.refreshModuleLocks());
 
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
@@ -141,6 +157,12 @@ export class MainMenu extends Scene {
 
     private handleResize(gameSize: Phaser.Structs.Size) {
         this.layout(gameSize.width, gameSize.height);
+    }
+
+    private refreshModuleLocks() {
+        this.menuCards.forEach((card, index) => {
+            card.setLocked(!isModuleUnlocked(MENU_MODULES[index]));
+        });
     }
 
     private playIntroAnimation() {
@@ -215,29 +237,30 @@ export class MainMenu extends Scene {
         const availableBandHeight = Math.max(220, bandBottom - bandTop);
 
         const cardsZoneLeft = Math.max(headerPaddingX, width * 0.03);
-        const cardsZoneRight = width * 0.78;
+        const cardsZoneRight = width * 0.62;
         const cardsZoneWidth = cardsZoneRight - cardsZoneLeft;
-        const cardGap = Math.max(24, width * 0.016);
-        const cardAspect = 1536 / 1024; // real card artwork aspect ratio (h / w)
-        const cardCount = this.menuCards.length;
+        const cardGapX = Math.max(20, width * 0.014);
+        const cardGapY = Math.max(18, height * 0.02);
+        const cardAspect = 9 / 16; // 16:9 artwork ratio expressed as height / width
+        const gridColumns = 2;
+        const gridRows = Math.ceil(this.menuCards.length / gridColumns);
 
-        let cardWidth = (cardsZoneWidth - cardGap * (cardCount - 1)) / cardCount;
+        let cardWidth = (cardsZoneWidth - cardGapX * (gridColumns - 1)) / gridColumns;
         let cardHeight = cardWidth * cardAspect;
+        const maxGridHeight =
+            (availableBandHeight - cardGapY * (gridRows - 1)) / gridRows;
 
-        if (cardHeight > availableBandHeight) {
-            cardHeight = availableBandHeight;
+        if (cardHeight > maxGridHeight) {
+            cardHeight = maxGridHeight;
             cardWidth = cardHeight / cardAspect;
         }
 
         const cardScale = cardWidth / 420;
-        const cardsBlockWidth = cardWidth * cardCount + cardGap * (cardCount - 1);
-        const cardsBlockLeft =
-            cardsZoneLeft + (cardsZoneWidth - cardsBlockWidth) / 2;
+        const cardsBlockWidth = cardWidth * gridColumns + cardGapX * (gridColumns - 1);
+        const cardsBlockHeight = cardHeight * gridRows + cardGapY * (gridRows - 1);
+        const cardsBlockLeft = cardsZoneLeft + (cardsZoneWidth - cardsBlockWidth) / 2;
         const cardsBlockCenterX = cardsBlockLeft + cardsBlockWidth / 2;
-        // Cards sit right below the welcome text (top-aligned) rather than
-        // centered in the whole band, so leftover vertical space collects
-        // below them instead of splitting evenly above/below.
-        const cardY = bandTop + cardHeight / 2;
+        const cardsBlockTop = bandTop;
 
         const rightColumnMargin = 15;
         const rightColumnLeft = cardsZoneRight + Math.max(16, width * 0.015);
@@ -270,18 +293,26 @@ export class MainMenu extends Scene {
         this.welcomeSubtitle.setWordWrapWidth(cardsBlockWidth * 0.94);
 
         this.menuCards.forEach((card, index) => {
-            const cardX = cardsBlockLeft + cardWidth / 2 + index * (cardWidth + cardGap);
+            const column = index % gridColumns;
+            const row = Math.floor(index / gridColumns);
+            const cardX = cardsBlockLeft + cardWidth / 2 + column * (cardWidth + cardGapX);
+            const cardY = cardsBlockTop + cardHeight / 2 + row * (cardHeight + cardGapY);
             card.layout(cardX, cardY, cardWidth, cardHeight);
         });
 
-        // The logo sits on the same row as the welcome title; the character's
-        // height is tied directly to the cards' height so it lines up with
-        // them top-to-bottom instead of floating at its own scale.
-        this.characterPanel.layoutLogo(rightColumnCenterX, welcomeTitleY, rightColumnWidth - rightColumnMargin);
-        this.characterPanel.layoutCharacter(
+        const logoMaxWidth = Math.min(width * 0.42, 560);
+        const logoScale = logoMaxWidth / this.logo.width;
+        const logoHeight = this.logo.height * logoScale;
+        const logoCenterX = cardsZoneLeft + logoMaxWidth / 2;
+        const logoCenterY = topEdgePaddingY + logoHeight / 2 + Math.max(8, height * 0.01);
+
+        this.logo.setPosition(logoCenterX, logoCenterY);
+        this.logo.setDisplaySize(logoMaxWidth, logoHeight);
+
+        this.characterPanel.layout(
             rightColumnCenterX,
-            cardY - cardHeight / 2,
-            cardHeight,
+            cardsBlockTop,
+            cardsBlockHeight,
             rightColumnWidth - rightColumnMargin,
         );
 

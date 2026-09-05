@@ -3,12 +3,14 @@ import { QuizConfig } from "./QuizScene";
 
 export interface HullComponentData extends HullComponentInfo {
     key: string;
-    quiz?: QuizConfig;
 }
 
-// Answering this correctly (>= passScore) unlocks the "Ship Construction
-// Surveyor" badge shown in MainMenu's profile card (see BadgeState.ts).
-const PINTU_KEDAP_AIR_QUIZ: QuizConfig = {
+// Shown immediately whenever this scene opens (not gated behind selecting
+// any particular component — the watertight door hotspot that used to
+// trigger it was removed from the diagram). Answering this correctly
+// (>= passScore) unlocks the "Ship Construction Surveyor" badge shown in
+// MainMenu's profile card (see BadgeState.ts).
+export const SOP_DARURAT_QUIZ: QuizConfig = {
     title: "KUIS SOP DARURAT KEBOCORAN",
     passScore: 3,
     badgeId: "ship-construction-surveyor",
@@ -60,9 +62,7 @@ const PINTU_KEDAP_AIR_QUIZ: QuizConfig = {
     ],
 };
 
-// The 10 labelled parts shown on the double-bottom diagram — 9 structural
-// members plus the watertight door (which also gates the emergency-flooding
-// quiz above).
+// The 9 labelled structural members shown on the double-bottom diagram.
 export const HULL_COMPONENTS: HullComponentData[] = [
     {
         key: "gading-gading",
@@ -267,26 +267,5 @@ export const HULL_COMPONENTS: HullComponentData[] = [
                 value: "Menahan beban muatan langsung dari ruang kargo di atasnya",
             },
         ],
-    },
-    {
-        key: "pintu-kedap-air",
-        number: 10,
-        name: "Pintu Kedap Air",
-        englishName: "Watertight Door",
-        description:
-            "Pintu yang dirancang untuk menutup rapat antar kompartemen kedap air guna mencegah penyebaran air saat terjadi kebocoran.",
-        specs: [
-            { label: "Material", value: "Baja Marin (Marine Steel)" },
-            { label: "Standar", value: "ISO 9328-2 / ASTM A131" },
-            { label: "Tebal", value: "10 - 12 mm" },
-            { label: "Kekuatan Tarik", value: "≥ 400 MPa" },
-            { label: "Lapisan Pelindung", value: "Epoxy Coating / Zinc Rich Primer" },
-            { label: "Fungsi Utama", value: "Menjaga kedap air antar kompartemen" },
-            {
-                label: "Catatan",
-                value: "Dilengkapi dengan karet kedap dan mekanisme pengunci kedap air",
-            },
-        ],
-        quiz: PINTU_KEDAP_AIR_QUIZ,
     },
 ];

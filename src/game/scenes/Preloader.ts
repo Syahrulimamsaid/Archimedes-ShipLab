@@ -14,6 +14,7 @@ export class Preloader extends Scene {
     private progressFrame!: Phaser.GameObjects.Graphics;
     private progressFill!: Phaser.GameObjects.Graphics;
     private progressText!: GameObjects.Text;
+    private continueTextBg!: Phaser.GameObjects.Graphics;
     private continueText!: GameObjects.Text;
     private touchButton!: GameObjects.Image;
     private isReadyToContinue = false;
@@ -43,13 +44,16 @@ export class Preloader extends Scene {
             })
             .setOrigin(0.5);
 
+        // A rounded pill behind the "click anywhere" text — drawn as its
+        // own Graphics object (rather than a text stroke) so it reads as a
+        // real container: rounded corners, light-blue fill, dark-blue border.
+        this.continueTextBg = this.add.graphics().setAlpha(0);
+
         this.continueText = this.add
             .text(0, 0, "Klik di mana saja untuk lanjut", {
                 fontFamily: "Arial",
                 fontSize: 22,
-                color: "#ffffff",
-                stroke: "#0b4f7a",
-                strokeThickness: 4,
+                color: "#0b4f7a",
             })
             .setOrigin(0.5)
             .setAlpha(0);
@@ -78,16 +82,25 @@ export class Preloader extends Scene {
         this.playIntroAnimation();
         this.playProgressAnimation();
 
-        this.input.once("pointerdown", () => {
-            if (this.isReadyToContinue) {
-                // Fullscreen requires a user gesture, so it must be requested
-                // here (inside the click handler), not later in MainMenu.
-                if (this.scale.fullscreen.available && !this.scale.isFullscreen) {
-                    this.scale.startFullscreen();
-                }
-                this.scene.start("MainMenu");
+        // `on`, not `once` — a click while still loading must not consume
+        // the listener (isReadyToContinue is false, so it's a no-op), or
+        // every click after loading actually finishes would silently do
+        // nothing. Remove it manually the one time it actually proceeds.
+        const handlePointerDown = () => {
+            if (!this.isReadyToContinue) {
+                return;
             }
-        });
+
+            this.input.off("pointerdown", handlePointerDown);
+
+            // Fullscreen requires a user gesture, so it must be requested
+            // here (inside the click handler), not later in MainMenu.
+            if (this.scale.fullscreen.available && !this.scale.isFullscreen) {
+                this.scale.startFullscreen();
+            }
+            this.scene.start("MainMenu");
+        };
+        this.input.on("pointerdown", handlePointerDown);
 
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
@@ -151,7 +164,7 @@ export class Preloader extends Scene {
         });
 
         this.tweens.add({
-            targets: this.continueText,
+            targets: [this.continueText, this.continueTextBg],
             alpha: 1,
             duration: 300,
             ease: "Power2",
@@ -187,7 +200,7 @@ export class Preloader extends Scene {
         const logoFinalScaleY = this.logo.scaleY;
 
         this.logo.setAlpha(0);
-        this.logo.setScale(logoFinalScaleX * 0.82, logoFinalScaleY * 0.82);
+        this.logo.setScale(logoFinalScaleX, logoFinalScaleY);
         this.logo.setAngle(-4);
 
         this.progressFrame.setAlpha(0);
@@ -300,9 +313,29 @@ export class Preloader extends Scene {
         this.touchButton.setData("baseY", touchBaseY);
         this.touchButton.setDisplaySize(touchButtonSizeW, touchButtonSizeH);
 
-        this.continueText.setPosition(
-            centerX,
-            touchBaseY + touchButtonSizeW / 2 + continueTextGap,
+        const continueTextY = touchBaseY + touchButtonSizeW / 2 + continueTextGap;
+        this.continueText.setPosition(centerX, continueTextY);
+
+        const paddingX = 20;
+        const paddingY = 12;
+        const bgWidth = this.continueText.width + paddingX * 2;
+        const bgHeight = this.continueText.height + paddingY * 2;
+        this.continueTextBg.clear();
+        this.continueTextBg.fillStyle(0xd4f0ff, 1);
+        this.continueTextBg.lineStyle(3, 0x0b4f7a, 1);
+        this.continueTextBg.fillRoundedRect(
+            centerX - bgWidth / 2,
+            continueTextY - bgHeight / 2,
+            bgWidth,
+            bgHeight,
+            15,
+        );
+        this.continueTextBg.strokeRoundedRect(
+            centerX - bgWidth / 2,
+            continueTextY - bgHeight / 2,
+            bgWidth,
+            bgHeight,
+            15,
         );
     }
 }

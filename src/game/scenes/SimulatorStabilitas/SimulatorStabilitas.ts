@@ -4,6 +4,7 @@ import { playSceneEnter, playSceneExit } from "../../../component/SceneTransitio
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
+import { unlockNextModuleAfter } from "../../ModuleProgress";
 import {
     GM_ANSWER_TOLERANCE,
     KM_METACENTER,
@@ -50,6 +51,7 @@ export class SimulatorStabilitas extends Scene {
         this.buildFooterCard();
         this.buildRightColumn();
         this.applyStability(computeStability(0, 0));
+        unlockNextModuleAfter("simulator-stabilitas");
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);

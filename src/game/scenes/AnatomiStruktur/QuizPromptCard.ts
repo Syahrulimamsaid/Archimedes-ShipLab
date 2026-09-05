@@ -11,8 +11,8 @@ import { QuizConfig } from "./QuizScene";
 
 /**
  * The purple "Kuis SOP Darurat Kebocoran" call-to-action card, shown below
- * the InfoWindow only for components that have a `quiz` attached (currently
- * just the watertight door).
+ * the InfoWindow from the moment the scene opens (not gated behind
+ * selecting any particular component).
  */
 export class QuizPromptCard {
     private container: GameObjects.Container;
@@ -85,10 +85,5 @@ export class QuizPromptCard {
         this.activeQuiz = quiz;
         this.container.setY(y);
         this.container.setVisible(true);
-    }
-
-    hide() {
-        this.activeQuiz = null;
-        this.container.setVisible(false);
     }
 }

@@ -4,8 +4,9 @@ import { playSceneEnter, playSceneExit } from "../../../component/SceneTransitio
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
+import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { DoubleBottomDiagramCard } from "./DoubleBottomDiagramCard";
-import { HULL_COMPONENTS } from "./HullComponentsData";
+import { HULL_COMPONENTS, SOP_DARURAT_QUIZ } from "./HullComponentsData";
 import { InfoWindow } from "./InfoWindow";
 import { QuizPromptCard } from "./QuizPromptCard";
 
@@ -119,6 +120,12 @@ export class AnatomiStruktur extends Scene {
             this.scene.start("QuizScene", { config: quiz, returnScene: "AnatomiStruktur" });
         });
         this.root.add(this.quizPrompt.view);
+
+        // Shown immediately on open — not gated behind selecting a
+        // component (the watertight door hotspot that used to gate it was
+        // removed from the diagram).
+        this.quizPrompt.show(SOP_DARURAT_QUIZ, this.infoWindow.bottom + 16);
+        unlockNextModuleAfter("anatomi-struktur");
     }
 
     // ---- Diagram hotspot interaction --------------------------------------
@@ -134,11 +141,9 @@ export class AnatomiStruktur extends Scene {
         this.viewedKeys.add(key);
         this.footer.setProgress(this.viewedKeys.size);
 
-        if (data.quiz) {
-            this.quizPrompt.show(data.quiz, this.infoWindow.bottom + 16);
-        } else {
-            this.quizPrompt.hide();
-        }
+        // The quiz prompt stays visible at all times now — just reposition
+        // it below whatever height the info window grew to.
+        this.quizPrompt.show(SOP_DARURAT_QUIZ, this.infoWindow.bottom + 16);
     }
 
     private layout(width: number, height: number) {

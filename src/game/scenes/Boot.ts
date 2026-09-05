@@ -18,15 +18,15 @@ export class Boot extends Scene {
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(
             "home.card.anatomi",
-            "assets/home/card-anatomi-struktur.png",
+            "assets/home/card-anatomi-struktur_new.png",
         );
         this.load.image(
             "home.card.stabilitas",
-            "assets/home/card-simulator-stablitas.png",
+            "assets/home/card-simulator-stablitas-new.png",
         );
         this.load.image(
             "home.card.hasil",
-            "assets/home/card-hasil.png",
+            "assets/home/card-hasil_new.png",
         );
         this.load.image("home.card.profile", "assets/home/card_profile.png");
         this.load.image("home.bar.info", "assets/home/bar_info.png");

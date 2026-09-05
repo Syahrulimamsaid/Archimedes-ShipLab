@@ -106,7 +106,7 @@ export class QuizScene extends Scene {
         this.bodyContainer = this.add.container(0, 0);
         this.root.add(this.bodyContainer);
 
-        this.renderQuestion();
+        this.playCountdown(() => this.renderQuestion());
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
@@ -125,6 +125,58 @@ export class QuizScene extends Scene {
 
     private returnToModule() {
         playSceneExit(this, this.root, () => this.scene.start(this.quizData.returnScene));
+    }
+
+    /** A 3-2-1 countdown shown once, right when the quiz starts, before the
+     * first question appears. Lives in bodyContainer so renderQuestion()'s
+     * own removeAll() clears it away automatically once the countdown ends. */
+    private playCountdown(onComplete: () => void) {
+        const centerX = CARD_X + CARD_WIDTH / 2;
+        const centerY = BODY_TOP + (CARD_HEIGHT - HEADER_HEIGHT) / 2;
+        const STEP_DURATION = 1000;
+
+        const countdownText = this.add
+            .text(centerX, centerY - 20, "3", {
+                fontFamily: "Arial Black",
+                fontSize: 130,
+                color: PRIMARY_BLUE_HEX,
+            })
+            .setOrigin(0.5);
+        const hint = this.add
+            .text(centerX, centerY + 90, "Kuis akan segera dimulai...", {
+                fontFamily: "Arial",
+                fontSize: 15,
+                color: BODY_TEXT,
+            })
+            .setOrigin(0.5);
+        this.bodyContainer.add([countdownText, hint]);
+
+        let remaining = 3;
+
+        const showNumber = () => {
+            countdownText.setText(String(remaining));
+            countdownText.setScale(0.3);
+            countdownText.setAlpha(0);
+
+            this.tweens.add({
+                targets: countdownText,
+                scale: 1,
+                alpha: 1,
+                duration: 240,
+                ease: "Back.Out",
+            });
+
+            this.time.delayedCall(STEP_DURATION, () => {
+                remaining -= 1;
+                if (remaining > 0) {
+                    showNumber();
+                } else {
+                    onComplete();
+                }
+            });
+        };
+
+        showNumber();
     }
 
     private renderQuestion() {
