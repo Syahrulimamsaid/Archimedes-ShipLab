@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
 import { BODY_TEXT, PRIMARY_BLUE, PURPLE } from "../../../component/ModulePanel/ModulePanel";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 /** The bottom strip: the small "TIPS PENGEMBANGAN DIRI" note on the left,
  * and the "ULANGI MISI" button on the right. */
@@ -60,7 +61,10 @@ export function createTipsAndRepeatRow(
 
     buttonBg.on("pointerover", () => buttonBg.setFillStyle(0x2558b8, 1));
     buttonBg.on("pointerout", () => buttonBg.setFillStyle(PRIMARY_BLUE, 1));
-    buttonBg.on("pointerdown", () => onRepeat());
+    buttonBg.on("pointerdown", () => {
+        playSfx(scene, SFX_KEYS.click);
+        onRepeat();
+    });
 
     return [tipsCard, tipsIcon, tipsText, buttonBg, buttonLabel];
 }

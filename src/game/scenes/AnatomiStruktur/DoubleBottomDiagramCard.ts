@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
 import { createFloatingTabCard } from "../../../component/ModulePanel/ModulePanel";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 const PRIMARY_BLUE = 0x2f68d8;
 const HOVER_BLUE = 0x5ba9e1;
@@ -75,7 +76,10 @@ export class DoubleBottomDiagramCard {
 
         rect.on("pointerover", () => this.setHotspotHover(key, true));
         rect.on("pointerout", () => this.setHotspotHover(key, false));
-        rect.on("pointerdown", () => this.onSelect(key));
+        rect.on("pointerdown", () => {
+            playSfx(this.scene, SFX_KEYS.click);
+            this.onSelect(key);
+        });
 
         const existing = this.hotspots.get(key) ?? [];
         existing.push(rect);

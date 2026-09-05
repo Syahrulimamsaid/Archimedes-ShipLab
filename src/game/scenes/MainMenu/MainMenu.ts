@@ -1,6 +1,10 @@
 import { GameObjects, Scale, Scene } from "phaser";
+import { BgmToggleButton } from '../../../component/Button/BgmToggleButton';
 import { ButtonImage } from '../../../component/Button/ButtonImage';
+import { ExitButton } from '../../../component/Button/ExitButton';
+import { initBgm, isBgmEnabled, toggleBgm } from '../../BgmManager';
 import { EventBus } from '../../EventBus';
+import { SFX_KEYS, playSfx } from '../../SfxManager';
 import { CharacterPanel } from './CharacterPanel';
 import { MenuCard } from './MenuCard';
 import { ModalExit } from './ModalExit';
@@ -14,8 +18,9 @@ export class MainMenu extends Scene {
     private characterPanel!: CharacterPanel;
     private bottomInfoBar!: GameObjects.Image;
     private exitModal!: ModalExit;
+    private exitButton!: ExitButton;
+    private bgmToggleButton!: BgmToggleButton;
 
-    private topButtons: ButtonImage[] = [];
     private bottomButtons: ButtonImage[] = [];
     private hasPlayedIntro = false;
 
@@ -50,15 +55,24 @@ export class MainMenu extends Scene {
         this.menuCards = [
             new MenuCard(this, {
                 texture: "home.card.anatomi",
-                onSelect: () => this.scene.start("AnatomiStruktur"),
+                onSelect: () => {
+                    playSfx(this, SFX_KEYS.click);
+                    this.scene.start("AnatomiStruktur");
+                },
             }),
             new MenuCard(this, {
                 texture: "home.card.stabilitas",
-                onSelect: () => this.scene.start("SimulatorStabilitas"),
+                onSelect: () => {
+                    playSfx(this, SFX_KEYS.click);
+                    this.scene.start("SimulatorStabilitas");
+                },
             }),
             new MenuCard(this, {
                 texture: "home.card.hasil",
-                onSelect: () => this.scene.start("HasilUmpanBalik"),
+                onSelect: () => {
+                    playSfx(this, SFX_KEYS.click);
+                    this.scene.start("HasilUmpanBalik");
+                },
             }),
         ];
 
@@ -66,18 +80,23 @@ export class MainMenu extends Scene {
 
         this.bottomInfoBar = this.add.image(0, 0, "home.bar.info");
 
-        const exitButton = new ButtonImage(this, {
-            texture: "home.btn.exit",
-            width: 52,
-            height: 52,
-            hoverAnimation: "popup",
-            hoverScale: 1.04,
-            hoverOffsetY: 6,
+        this.exitButton = new ExitButton(this, {
+            size: 40,
+            onClick: () => {
+                playSfx(this, SFX_KEYS.click);
+                this.exitModal.open();
+            },
         });
 
-        exitButton.on("pointerdown", () => this.exitModal.open());
-
-        this.topButtons = [exitButton];
+        this.bgmToggleButton = new BgmToggleButton(this, {
+            height: 44,
+            initialEnabled: isBgmEnabled(),
+            onToggle: () => {
+                playSfx(this, SFX_KEYS.click);
+                return toggleBgm();
+            },
+        });
+        initBgm(this);
 
         this.bottomButtons = [
             new ButtonImage(this, {
@@ -97,6 +116,12 @@ export class MainMenu extends Scene {
                 hoverOffsetY: 4,
             }),
         ];
+
+        this.bottomButtons[0].on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            playSfx(this, SFX_KEYS.indianSong);
+        });
+        this.bottomButtons[1].on("pointerdown", () => playSfx(this, SFX_KEYS.click));
 
         this.exitModal = new ModalExit(this, () =>
             this.scene.start("Preloader"),
@@ -171,13 +196,15 @@ export class MainMenu extends Scene {
         // floating exit button, and a flat top margin for the content below.
         const topEdgePaddingX = Math.max(16, width * 0.015);
         const topEdgePaddingY = Math.max(20, height * 0.03);
-        const topButtonSize = Math.max(42, Math.min(52, height * 0.05));
+        // Shared height for the exit button and the BGM switch, so they're
+        // proportioned to match each other exactly.
+        const headerButtonHeight = Math.max(52, Math.min(68, height * 0.04));
 
         // Cards (and the character column) are sized to fit the vertical band
         // that's actually free — below the welcome text, above the bottom bar —
         // rather than a flat % of window height, so shrinking the welcome text
         // directly reclaims room for the content below it.
-        const contentTop = topEdgePaddingY + topButtonSize + Math.max(16, height * 0.02);
+        const contentTop = topEdgePaddingY + headerButtonHeight + Math.max(16, height * 0.02);
         const welcomeTitleY = contentTop + 60;
         const welcomeSubtitleY = contentTop + 90;
         const bottomBarHeight = Math.max(45, height * 0.2);
@@ -217,24 +244,23 @@ export class MainMenu extends Scene {
         const rightColumnWidth = width - rightColumnLeft - rightColumnMargin;
         const rightColumnCenterX = rightColumnLeft + rightColumnWidth / 2;
 
-        // Exit button floats at the top-right corner directly on the
-        // background now that there's no bar behind it.
+        // Exit button and BGM switch float at the top-right corner directly
+        // on the background now that there's no bar behind them, sized to
+        // match each other via headerButtonHeight.
+        const headerButtonCenterY = topEdgePaddingY + headerButtonHeight / 2;
         let currentRightX = width - topEdgePaddingX;
 
-        this.topButtons
-            .slice()
-            .reverse()
-            .forEach((button) => {
-                const buttonWidth = topButtonSize;
-                const buttonHeight = topButtonSize;
-                const buttonCenterX = currentRightX - buttonWidth / 2;
-                const buttonCenterY = topEdgePaddingY + buttonHeight / 2;
+        this.exitButton.setSize(headerButtonHeight);
+        this.exitButton.setPosition(currentRightX - headerButtonHeight / 2, headerButtonCenterY);
+        currentRightX -= headerButtonHeight;
 
-                button.setPosition(buttonCenterX, buttonCenterY);
-                button.setSize(buttonWidth, buttonHeight);
-
-                currentRightX -= buttonWidth;
-            });
+        const bgmButtonGap = Math.max(10, width * 0.008);
+        this.bgmToggleButton.setSize(headerButtonHeight);
+        currentRightX -= bgmButtonGap;
+        this.bgmToggleButton.setPosition(
+            currentRightX - this.bgmToggleButton.width / 2,
+            headerButtonCenterY,
+        );
 
         this.welcomeTitle.setPosition(cardsBlockCenterX, welcomeTitleY);
         this.welcomeTitle.setFontSize(Math.max(26, 36 * cardScale));

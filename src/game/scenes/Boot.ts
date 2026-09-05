@@ -11,6 +11,9 @@ export class Boot extends Scene {
         this.load.image("profile.human", "assets/profile.png");
         this.load.image("btn.touch", "assets/btn_touch.png");
         this.load.image("character", "assets/character.png");
+        this.load.audio("bgm.main", "assets/bgm/bluelike_u-7-wizard-cute-bgm-274665.mp3");
+        this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
+        this.load.audio("sfx.indianSong", "assets/soundeffect/indian_song.mp3");
 
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(

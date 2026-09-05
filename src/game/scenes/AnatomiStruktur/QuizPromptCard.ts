@@ -6,6 +6,7 @@ import {
     PURPLE,
     PURPLE_TEXT,
 } from "../../../component/ModulePanel/ModulePanel";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { QuizConfig } from "./QuizScene";
 
 /**
@@ -68,6 +69,7 @@ export class QuizPromptCard {
         buttonBg.on("pointerout", () => buttonBg.setFillStyle(PRIMARY_BLUE, 1));
         buttonBg.on("pointerdown", () => {
             if (this.activeQuiz) {
+                playSfx(scene, SFX_KEYS.click);
                 onStart(this.activeQuiz);
             }
         });

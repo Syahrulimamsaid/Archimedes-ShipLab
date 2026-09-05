@@ -1,5 +1,13 @@
 import { GameObjects, Scene, Scale } from "phaser";
 
+// The actual asset loading (everything in Boot.ts) already finishes before
+// this scene even starts — Phaser only calls create() once loading is
+// done. So the progress bar here has nothing real to time itself against;
+// without an artificial pace it would just snap straight to 100%. This is
+// the minimum time the bar animation takes before "tap to continue" can
+// appear, regardless of how fast (or slow) real loading actually was.
+const MIN_LOAD_DURATION = 2000;
+
 export class Preloader extends Scene {
     private background!: GameObjects.Image;
     private logo!: GameObjects.Image;
@@ -12,6 +20,8 @@ export class Preloader extends Scene {
     private progressValue = 0;
     private hasPlayedIntro = false;
     private progressIntroScale = 1;
+    private realLoadComplete = false;
+    private minDurationElapsed = false;
 
     constructor() {
         super("Preloader");
@@ -52,51 +62,9 @@ export class Preloader extends Scene {
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
 
-        this.load.on("progress", (progress: number) => {
-            const percent = Math.round(progress * 100);
-
-            this.progressValue = progress;
-            this.progressText.setText(`${percent}% Memuat Konten`);
-            this.layout(this.scale.width, this.scale.height);
-        });
-
         this.load.once("complete", () => {
-            this.isReadyToContinue = true;
-            this.progressValue = 1;
-            this.progressText.setText("100% Memuat Konten");
-            this.layout(this.scale.width, this.scale.height);
-
-            this.tweens.add({
-                targets: this.progressText,
-                alpha: 0,
-                duration: 240,
-                ease: "Power2",
-            });
-
-            this.tweens.add({
-                targets: this.continueText,
-                alpha: 1,
-                duration: 300,
-                ease: "Power2",
-            });
-
-            this.tweens.add({
-                targets: this.touchButton,
-                alpha: 1,
-                duration: 300,
-                ease: "Power2",
-                onComplete: () => {
-                    this.touchButton.setData("baseY", this.touchButton.y);
-                    this.tweens.add({
-                        targets: this.touchButton,
-                        y: this.touchButton.y - 6,
-                        duration: 650,
-                        ease: "Sine.InOut",
-                        yoyo: true,
-                        repeat: -1,
-                    });
-                },
-            });
+            this.realLoadComplete = true;
+            this.tryFinishLoading();
         });
     }
 
@@ -108,6 +76,7 @@ export class Preloader extends Scene {
 
     create() {
         this.playIntroAnimation();
+        this.playProgressAnimation();
 
         this.input.once("pointerdown", () => {
             if (this.isReadyToContinue) {
@@ -127,6 +96,84 @@ export class Preloader extends Scene {
 
     private handleResize(gameSize: Phaser.Structs.Size) {
         this.layout(gameSize.width, gameSize.height);
+    }
+
+    /** Drives the visible fill from 0 to 100% over MIN_LOAD_DURATION, in two
+     * stages — a quick ramp up to 92% followed by a slower final push — the
+     * same "fast, then a final crawl" pace real download bars tend to have,
+     * rather than one flat linear sweep. */
+    private playProgressAnimation() {
+        this.tweens.add({
+            targets: this,
+            progressValue: 0.92,
+            duration: MIN_LOAD_DURATION * 0.65,
+            ease: "Cubic.Out",
+            onUpdate: () => this.updateProgressDisplay(),
+            onComplete: () => {
+                this.tweens.add({
+                    targets: this,
+                    progressValue: 1,
+                    duration: MIN_LOAD_DURATION * 0.35,
+                    ease: "Sine.In",
+                    onUpdate: () => this.updateProgressDisplay(),
+                    onComplete: () => {
+                        this.minDurationElapsed = true;
+                        this.tryFinishLoading();
+                    },
+                });
+            },
+        });
+    }
+
+    private updateProgressDisplay() {
+        const percent = Math.round(this.progressValue * 100);
+        this.progressText.setText(`${percent}% Memuat Konten`);
+        this.layout(this.scale.width, this.scale.height);
+    }
+
+    /** Only reveals "tap to continue" once both the paced bar animation has
+     * finished AND assets are actually loaded — whichever takes longer. */
+    private tryFinishLoading() {
+        if (!this.minDurationElapsed || !this.realLoadComplete || this.isReadyToContinue) {
+            return;
+        }
+
+        this.isReadyToContinue = true;
+        this.progressValue = 1;
+        this.progressText.setText("100% Memuat Konten");
+        this.layout(this.scale.width, this.scale.height);
+
+        this.tweens.add({
+            targets: [this.progressText, this.progressFrame, this.progressFill],
+            alpha: 0,
+            duration: 240,
+            ease: "Power2",
+        });
+
+        this.tweens.add({
+            targets: this.continueText,
+            alpha: 1,
+            duration: 300,
+            ease: "Power2",
+        });
+
+        this.tweens.add({
+            targets: this.touchButton,
+            alpha: 1,
+            duration: 300,
+            ease: "Power2",
+            onComplete: () => {
+                this.touchButton.setData("baseY", this.touchButton.y);
+                this.tweens.add({
+                    targets: this.touchButton,
+                    y: this.touchButton.y - 6,
+                    duration: 650,
+                    ease: "Sine.InOut",
+                    yoyo: true,
+                    repeat: -1,
+                });
+            },
+        });
     }
 
     private playIntroAnimation() {
@@ -243,7 +290,7 @@ export class Preloader extends Scene {
 
         if (!isTouchAnimating || currentTouchAlpha <= 0) {
             this.touchButton.setPosition(centerX, touchBaseY);
-        } else {      
+        } else {
             const animatedOffsetY =
                 this.touchButton.y -
                 ((this.touchButton.getData("baseY") as number) ?? touchBaseY);

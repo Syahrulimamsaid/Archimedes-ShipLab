@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../game/SfxManager";
+
 const PRIMARY_BLUE = 0x2f68d8;
 const PRIMARY_BLUE_HEX = "#2f68d8";
 const DARK_NAVY = "#143a84";
@@ -149,7 +151,10 @@ export class ModuleHeader {
                 ease: "Quad.Out",
             });
         });
-        hitArea.on("pointerdown", () => onBack());
+        hitArea.on("pointerdown", () => {
+            playSfx(scene, SFX_KEYS.click);
+            onBack();
+        });
 
         return container;
     }

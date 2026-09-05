@@ -8,6 +8,7 @@ import {
     PRIMARY_BLUE_HEX,
     createFloatingTabCard,
 } from "../../../component/ModulePanel/ModulePanel";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { CARGO_TYPES, CargoType, ZoneKey } from "./CargoModel";
 
 interface DropZoneState {
@@ -169,8 +170,14 @@ export class ShipCargoCard {
             this.topView.setVisible(!showSide);
         };
 
-        sideHit.on("pointerdown", () => drawToggle(true));
-        topHit.on("pointerdown", () => drawToggle(false));
+        sideHit.on("pointerdown", () => {
+            playSfx(this.scene, SFX_KEYS.click);
+            drawToggle(true);
+        });
+        topHit.on("pointerdown", () => {
+            playSfx(this.scene, SFX_KEYS.click);
+            drawToggle(false);
+        });
         drawToggle(true);
 
         this.viewObjects.push(
@@ -381,6 +388,7 @@ export class ShipCargoCard {
                 this.scene.tweens.add({ targets: bg, scaleX: 1, scaleY: 1, duration: 120 });
             });
             bg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+                playSfx(this.scene, SFX_KEYS.click);
                 this.startDrag(cargo, pointer);
             });
 
@@ -533,6 +541,7 @@ export class ShipCargoCard {
                 "pointerdown",
                 (pointer: Phaser.Input.Pointer, x: number, y: number, event: Phaser.Types.Input.EventData) => {
                     event.stopPropagation();
+                    playSfx(this.scene, SFX_KEYS.click);
                     this.removeCargo(zoneKey, item.id);
                 },
             );

@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 export class ModalExit {
     private scene: Scene;
@@ -60,8 +61,14 @@ export class ModalExit {
         noButton.setPosition(-72, 64);
         yesButton.setPosition(72, 64);
 
-        noButton.on("pointerdown", () => this.close());
-        yesButton.on("pointerdown", () => onConfirm());
+        noButton.on("pointerdown", () => {
+            playSfx(scene, SFX_KEYS.click);
+            this.close();
+        });
+        yesButton.on("pointerdown", () => {
+            playSfx(scene, SFX_KEYS.click);
+            onConfirm();
+        });
 
         overlay.on(
             "pointerdown",

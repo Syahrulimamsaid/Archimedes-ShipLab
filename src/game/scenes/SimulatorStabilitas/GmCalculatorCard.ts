@@ -10,6 +10,7 @@ import {
     PURPLE_TEXT,
     createHeaderBarCard,
 } from "../../../component/ModulePanel/ModulePanel";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 /**
  * The "PERHITUNGAN GM" card: KM/KG readouts, the Stability Auditor mini-card,
@@ -179,7 +180,10 @@ export class GmCalculatorCard {
 
         buttonBg.on("pointerover", () => buttonBg.setFillStyle(0x2558b8, 1));
         buttonBg.on("pointerout", () => buttonBg.setFillStyle(PRIMARY_BLUE, 1));
-        buttonBg.on("pointerdown", () => onValidate(this.gmInput.value));
+        buttonBg.on("pointerdown", () => {
+            playSfx(scene, SFX_KEYS.click);
+            onValidate(this.gmInput.value);
+        });
 
         this.viewObjects.push(buttonBg, buttonLabel);
 
