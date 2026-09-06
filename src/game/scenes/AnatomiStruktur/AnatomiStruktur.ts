@@ -5,10 +5,10 @@ import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
 import { unlockNextModuleAfter } from "../../ModuleProgress";
-import { DoubleBottomDiagramCard } from "./DoubleBottomDiagramCard";
 import { HULL_COMPONENTS, SOP_DARURAT_QUIZ } from "./HullComponentsData";
 import { InfoWindow } from "./InfoWindow";
 import { QuizPromptCard } from "./QuizPromptCard";
+import { InteractiveShipStructureViewer } from "./ship3d/InteractiveShipStructureViewer";
 
 // The whole scene is authored at this fixed reference resolution and
 // uniformly scaled to fit the window — far more reliable for reproducing a
@@ -28,6 +28,7 @@ export class AnatomiStruktur extends Scene {
     private infoWindow!: InfoWindow;
     private footer!: SceneProgressFooter;
     private quizPrompt!: QuizPromptCard;
+    private diagramViewer!: InteractiveShipStructureViewer;
     private viewedKeys = new Set<string>();
 
     constructor() {
@@ -80,7 +81,7 @@ export class AnatomiStruktur extends Scene {
     // ---- Diagram card --------------------------------------------------
 
     private buildDiagramCard() {
-        const diagramCard = new DoubleBottomDiagramCard(
+        this.diagramViewer = new InteractiveShipStructureViewer(
             this,
             MARGIN,
             310,
@@ -88,7 +89,7 @@ export class AnatomiStruktur extends Scene {
             510,
             (key) => this.selectComponent(key),
         );
-        this.root.add(diagramCard.view);
+        this.root.add(this.diagramViewer.view);
     }
 
     // ---- Footer card: scene label + progress ---------------------------
@@ -152,9 +153,10 @@ export class AnatomiStruktur extends Scene {
 
         const scale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
         this.root.setScale(scale);
-        this.root.setPosition(
-            (width - DESIGN_WIDTH * scale) / 2,
-            (height - DESIGN_HEIGHT * scale) / 2,
-        );
+        const rootX = (width - DESIGN_WIDTH * scale) / 2;
+        const rootY = (height - DESIGN_HEIGHT * scale) / 2;
+        this.root.setPosition(rootX, rootY);
+
+        this.diagramViewer?.setViewport(scale, rootX, rootY);
     }
 }
