@@ -11,6 +11,7 @@ import {
 import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
 import { BadgeId, unlockBadge } from "../../BadgeState";
 import { EventBus } from "../../EventBus";
+import { ModuleId, unlockNextModuleAfter } from "../../ModuleProgress";
 
 export interface QuizQuestion {
     question: string;
@@ -30,6 +31,9 @@ export interface QuizSceneData {
     config: QuizConfig;
     /** Scene key to return to once the quiz has been completed (pass or fail). */
     returnScene: string;
+    /** The module this quiz belongs to — finishing the quiz (reaching the
+     * result screen, pass or fail) unlocks whatever module comes next. */
+    moduleId?: ModuleId;
 }
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
@@ -59,6 +63,7 @@ export class QuizScene extends Scene {
     private quizData!: QuizSceneData;
     private questionIndex = 0;
     private selectedIndex: number | null = null;
+    private answered = false;
     private correctCount = 0;
 
     constructor() {
@@ -69,6 +74,7 @@ export class QuizScene extends Scene {
         this.quizData = data;
         this.questionIndex = 0;
         this.selectedIndex = null;
+        this.answered = false;
         this.correctCount = 0;
     }
 
@@ -86,22 +92,6 @@ export class QuizScene extends Scene {
             HEADER_HEIGHT,
         );
         this.root.add(chrome);
-
-        const notice = this.add
-            .text(
-                CARD_X + CARD_WIDTH / 2,
-                CARD_Y - 30,
-                "Kuis ini tidak dapat dilewati — selesaikan seluruh soal untuk kembali ke modul.",
-                {
-                    fontFamily: "Arial Black",
-                    fontSize: 14,
-                    color: "#ffffff",
-                    backgroundColor: "#c0392b",
-                    padding: { x: 14, y: 8 },
-                },
-            )
-            .setOrigin(0.5);
-        this.root.add(notice);
 
         this.bodyContainer = this.add.container(0, 0);
         this.root.add(this.bodyContainer);
@@ -213,23 +203,39 @@ export class QuizScene extends Scene {
 
         question.options.forEach((option, index) => {
             const rowY = optionsTop + index * (rowHeight + gap);
-            const isSelected = this.selectedIndex === index;
+            const isCorrectRow = index === question.correctIndex;
+            const isPickedRow = index === this.selectedIndex;
+
+            // Feedback is immediate: once answered, the correct option is
+            // always shown green, and a wrong pick is shown red right next
+            // to it — no need to wait for a "confirm" step to find out.
+            let fillColor = 0xffffff;
+            let borderColor = BORDER_BLUE;
+            let accentColor = PRIMARY_BLUE;
+            if (this.answered && isCorrectRow) {
+                fillColor = 0xe3f7ec;
+                borderColor = 0x1f8d52;
+                accentColor = 0x1f8d52;
+            } else if (this.answered && isPickedRow) {
+                fillColor = 0xfceaea;
+                borderColor = 0xc0392b;
+                accentColor = 0xc0392b;
+            }
 
             const rowBg = this.add
-                .rectangle(CONTENT_X, rowY, CONTENT_WIDTH, rowHeight, isSelected ? 0xeaf3ff : 0xffffff, 1)
+                .rectangle(CONTENT_X, rowY, CONTENT_WIDTH, rowHeight, fillColor, 1)
                 .setOrigin(0, 0)
-                .setStrokeStyle(2, isSelected ? PRIMARY_BLUE : BORDER_BLUE, 1)
-                .setInteractive({ useHandCursor: true });
+                .setStrokeStyle(2, borderColor, 1);
 
             const letterBg = this.add
-                .circle(CONTENT_X + 30, rowY + rowHeight / 2, 16, isSelected ? PRIMARY_BLUE : 0xeaf3ff, 1)
-                .setStrokeStyle(1.5, PRIMARY_BLUE, isSelected ? 1 : 0.4);
+                .circle(CONTENT_X + 30, rowY + rowHeight / 2, 16, accentColor, this.answered && (isCorrectRow || isPickedRow) ? 1 : 0.1)
+                .setStrokeStyle(1.5, accentColor, 1);
 
             const letterText = this.add
                 .text(CONTENT_X + 30, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
                     fontFamily: "Arial Black",
                     fontSize: 14,
-                    color: isSelected ? "#ffffff" : PRIMARY_BLUE_HEX,
+                    color: this.answered && (isCorrectRow || isPickedRow) ? "#ffffff" : PRIMARY_BLUE_HEX,
                 })
                 .setOrigin(0.5);
 
@@ -242,10 +248,17 @@ export class QuizScene extends Scene {
                 })
                 .setOrigin(0, 0.5);
 
-            rowBg.on("pointerdown", () => {
-                this.selectedIndex = index;
-                this.renderQuestion();
-            });
+            if (!this.answered) {
+                rowBg.setInteractive({ useHandCursor: true });
+                rowBg.on("pointerdown", () => {
+                    this.selectedIndex = index;
+                    this.answered = true;
+                    if (index === question.correctIndex) {
+                        this.correctCount += 1;
+                    }
+                    this.renderQuestion();
+                });
+            }
 
             this.bodyContainer.add([rowBg, letterBg, letterText, optionText]);
         });
@@ -259,7 +272,7 @@ export class QuizScene extends Scene {
         // option rows down into the button.
         const optionsBottom = optionsTop + question.options.length * (rowHeight + gap) - gap;
         const buttonY = optionsBottom + 28;
-        const isEnabled = this.selectedIndex !== null;
+        const isEnabled = this.answered;
 
         const nextButton = this.add
             .rectangle(buttonX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, isEnabled ? 1 : 0.4)
@@ -279,19 +292,18 @@ export class QuizScene extends Scene {
     }
 
     private confirmAnswer() {
-        const config = this.quizData.config;
-        if (this.selectedIndex === null) {
+        // Scoring already happened the moment the option was picked (see
+        // renderQuestion) so the correct/wrong colors can appear instantly —
+        // this just advances once the student has seen that feedback.
+        if (!this.answered) {
             return;
         }
 
-        const question = config.questions[this.questionIndex];
-        if (this.selectedIndex === question.correctIndex) {
-            this.correctCount += 1;
-        }
-
+        const config = this.quizData.config;
         if (this.questionIndex < config.questions.length - 1) {
             this.questionIndex += 1;
             this.selectedIndex = null;
+            this.answered = false;
             this.renderQuestion();
         } else {
             this.renderResult();
@@ -305,6 +317,10 @@ export class QuizScene extends Scene {
         const total = config.questions.length;
         const passed = this.correctCount >= config.passScore;
         const centerX = CARD_X + CARD_WIDTH / 2;
+
+        if (this.quizData.moduleId) {
+            unlockNextModuleAfter(this.quizData.moduleId);
+        }
 
         if (passed) {
             unlockBadge(config.badgeId);
@@ -398,6 +414,7 @@ export class QuizScene extends Scene {
             retryBtn.on("pointerdown", () => {
                 this.questionIndex = 0;
                 this.selectedIndex = null;
+                this.answered = false;
                 this.correctCount = 0;
                 this.renderQuestion();
             });

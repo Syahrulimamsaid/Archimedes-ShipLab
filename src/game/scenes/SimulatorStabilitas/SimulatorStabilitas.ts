@@ -51,7 +51,6 @@ export class SimulatorStabilitas extends Scene {
         this.buildFooterCard();
         this.buildRightColumn();
         this.applyStability(computeStability(0, 0));
-        unlockNextModuleAfter("simulator-stabilitas");
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
@@ -160,6 +159,10 @@ export class SimulatorStabilitas extends Scene {
             this.gmCard.setFeedback("Masukkan hasil GM (dalam meter) terlebih dahulu.", "#c0392b");
             return;
         }
+
+        // Attempting the exercise (whether the answer is right or wrong) is
+        // what unlocks Hasil & Umpan Balik — not merely opening the scene.
+        unlockNextModuleAfter("simulator-stabilitas");
 
         const { km, kg, gm } = this.currentStability;
         const isCorrect = Math.abs(userGM - gm) <= GM_ANSWER_TOLERANCE;

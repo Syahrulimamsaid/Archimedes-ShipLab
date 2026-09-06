@@ -4,7 +4,6 @@ import { playSceneEnter, playSceneExit } from "../../../component/SceneTransitio
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
-import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { HULL_COMPONENTS, SOP_DARURAT_QUIZ } from "./HullComponentsData";
 import { InfoWindow } from "./InfoWindow";
 import { QuizPromptCard } from "./QuizPromptCard";
@@ -117,8 +116,14 @@ export class AnatomiStruktur extends Scene {
         this.quizPrompt = new QuizPromptCard(this, RIGHT_COLUMN_X, RIGHT_COLUMN_WIDTH, (quiz) => {
             // A dedicated scene, not a modal overlay — it takes over the
             // whole screen and (deliberately) has no way back until the
-            // quiz is completed.
-            this.scene.start("QuizScene", { config: quiz, returnScene: "AnatomiStruktur" });
+            // quiz is completed. Finishing it (reaching the result screen,
+            // pass or fail) is what unlocks Simulator Stabilitas — see
+            // QuizScene.renderResult().
+            this.scene.start("QuizScene", {
+                config: quiz,
+                returnScene: "AnatomiStruktur",
+                moduleId: "anatomi-struktur",
+            });
         });
         this.root.add(this.quizPrompt.view);
 
@@ -126,7 +131,6 @@ export class AnatomiStruktur extends Scene {
         // component (the watertight door hotspot that used to gate it was
         // removed from the diagram).
         this.quizPrompt.show(SOP_DARURAT_QUIZ, this.infoWindow.bottom + 16);
-        unlockNextModuleAfter("anatomi-struktur");
     }
 
     // ---- Diagram hotspot interaction --------------------------------------
