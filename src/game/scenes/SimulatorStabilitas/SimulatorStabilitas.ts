@@ -1,6 +1,5 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { Button } from "../../../component/Button/Button";
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
@@ -10,7 +9,7 @@ import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { createContainerToken } from "./CargoContainerView";
 import { ShipFrontView } from "./ShipFrontView";
 import { StabilityHUD } from "./StabilityHUD";
-import { ALMOST_STABLE_MOMENT, evaluateStability, validatePlacement } from "./stability/StabilityCalculator";
+import { evaluateStability, validatePlacement } from "./stability/StabilityCalculator";
 import { generateScenario } from "./stability/StabilityScenarioGenerator";
 import { CargoContainer, CargoPlacement, CargoSlot, CaseNumber, StabilityResult, StabilityScenario } from "./stability/types";
 
@@ -37,13 +36,10 @@ export class SimulatorStabilitas extends Scene {
     private caseText!: GameObjects.Text;
     private casePips: GameObjects.Arc[] = [];
 
-    private overlayObjects: GameObjects.GameObject[] = [];
-
     private scenario!: StabilityScenario;
     private placements: CargoPlacement[] = [];
     private availableCargo: CargoContainer[] = [];
     private caseNumber: CaseNumber = 1;
-    private caseResultNetMoments: number[] = [];
     private hasAttemptedCheck = false;
     private initialColorCounter = 0;
 
@@ -294,117 +290,28 @@ export class SimulatorStabilitas extends Scene {
         const result = this.recomputeStability();
 
         if (result.status === "stable") {
-            this.handleCaseSuccess(result);
+            this.handleCaseSuccess();
         } else {
             this.hud.setFeedback("BELUM STABIL — distribusi muatan belum menghasilkan momen yang seimbang.", RED_HEX);
             this.shipView.rockFeedback(result.heelAngle);
         }
     }
 
-    private handleCaseSuccess(result: StabilityResult) {
+    /** No modal checkpoint between cases — a stable result settles the
+     * ship, shows a brief inline confirmation, then moves straight on to
+     * the next case (or Hasil & Umpan Balik after case 3) on its own. */
+    private handleCaseSuccess() {
         this.hud.setFeedback("✓ STABIL — distribusi muatan tepat, kapal kembali dalam kondisi stabil.", GREEN_HEX);
-        this.caseResultNetMoments.push(result.netMoment);
         this.shipView.settleBounce();
-        this.time.delayedCall(750, () => this.showCaseCompleteOverlay());
+        this.time.delayedCall(900, () => this.advanceAfterSuccess());
     }
 
-    private showCaseCompleteOverlay() {
+    private advanceAfterSuccess() {
         if (this.caseNumber < 3) {
-            const nextCase = (this.caseNumber + 1) as CaseNumber;
-            this.buildOverlay(
-                `CASE ${this.caseNumber}/3 SELESAI`,
-                "Kapal berhasil diseimbangkan. Lanjutkan ke tantangan berikutnya.",
-                `LANJUT CASE ${nextCase} →`,
-                () => {
-                    this.destroyOverlay();
-                    this.startCase(nextCase);
-                },
-            );
+            this.startCase((this.caseNumber + 1) as CaseNumber);
         } else {
-            this.showFinalResult();
+            this.goTo("HasilUmpanBalik");
         }
-    }
-
-    private showFinalResult() {
-        const accuracy = this.computeAccuracy();
-        this.buildOverlay(
-            "✓ 3/3 SIMULASI SELESAI",
-            `AKURASI DISTRIBUSI\n${accuracy}%\n\nSTATUS\nSTABIL`,
-            "SELESAI",
-            () => this.goTo("HasilUmpanBalik"),
-        );
-    }
-
-    private computeAccuracy(): number {
-        if (this.caseResultNetMoments.length === 0) return 100;
-        const scores = this.caseResultNetMoments.map((moment) =>
-            Math.max(0, 1 - Math.abs(moment) / ALMOST_STABLE_MOMENT),
-        );
-        const average = scores.reduce((a, b) => a + b, 0) / scores.length;
-        return Math.round(average * 100);
-    }
-
-    /** A centered modal-style card over the board — used for both the
-     * per-case "selesai" checkpoint and the final 3/3 result. */
-    private buildOverlay(title: string, message: string, buttonLabel: string, onContinue: () => void) {
-        this.destroyOverlay();
-
-        const cardWidth = 520;
-        const cardHeight = 320;
-        const centerX = (MARGIN + RIGHT_COLUMN_X + RIGHT_COLUMN_WIDTH) / 2;
-        const centerY = BOARD_Y + BOARD_HEIGHT / 2;
-
-        const backdrop = this.add
-            .rectangle(centerX, centerY, RIGHT_COLUMN_X + RIGHT_COLUMN_WIDTH - MARGIN, BOARD_HEIGHT, 0x0b1c33, 0.45)
-            .setInteractive();
-
-        const card = this.add.graphics();
-        card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(centerX - cardWidth / 2, centerY - cardHeight / 2, cardWidth, cardHeight, 20);
-        card.lineStyle(2, PRIMARY_BLUE, 1);
-        card.strokeRoundedRect(centerX - cardWidth / 2, centerY - cardHeight / 2, cardWidth, cardHeight, 20);
-
-        const titleText = this.add
-            .text(centerX, centerY - cardHeight / 2 + 56, title, {
-                fontFamily: "Arial Black",
-                fontSize: 26,
-                color: GREEN_HEX,
-                align: "center",
-            })
-            .setOrigin(0.5);
-
-        const messageText = this.add
-            .text(centerX, centerY - 10, message, {
-                fontFamily: "Arial Black",
-                fontSize: 15,
-                color: DARK_NAVY,
-                align: "center",
-                lineSpacing: 8,
-                wordWrap: { width: cardWidth - 80 },
-            })
-            .setOrigin(0.5);
-
-        const continueButton = new Button(this, {
-            x: centerX,
-            y: centerY + cardHeight / 2 - 56,
-            width: 260,
-            height: 52,
-            text: buttonLabel,
-            fillColor: PRIMARY_BLUE,
-            fontSize: 15,
-        });
-        continueButton.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            onContinue();
-        });
-
-        this.overlayObjects = [backdrop, card, titleText, messageText, continueButton.view];
-        this.root.add(this.overlayObjects);
-    }
-
-    private destroyOverlay() {
-        this.overlayObjects.forEach((obj) => obj.destroy());
-        this.overlayObjects = [];
     }
 
     // ---- Drag & drop ------------------------------------------------------------
@@ -461,6 +368,29 @@ export class SimulatorStabilitas extends Scene {
         this.recomputeStability();
     }
 
+    /** Sends a revised (picked-up-off-the-ship) container back to the
+     * "PILIHAN MUATAN" tray instead of restoring it to its old slot — for
+     * when it turns out not to be needed at all, not just moved elsewhere. */
+    private returnContainerToPalette(container: CargoContainer) {
+        this.availableCargo.push(container);
+        this.hud.setPalette(this.availableCargo);
+        this.recomputeStability();
+    }
+
+    /** Whether a drop point (raw pointer coords) lands inside the right
+     * column's card — the palette tray's drop zone for "return this cargo,
+     * I don't want to use it after all". */
+    private isPointerOverPalette(pointer: Phaser.Input.Pointer): boolean {
+        const designX = (pointer.x - this.currentRootX) / this.currentScale;
+        const designY = (pointer.y - this.currentRootY) / this.currentScale;
+        return (
+            designX >= RIGHT_COLUMN_X &&
+            designX <= RIGHT_COLUMN_X + RIGHT_COLUMN_WIDTH &&
+            designY >= BOARD_Y &&
+            designY <= BOARD_Y + BOARD_HEIGHT
+        );
+    }
+
     private handlePointerMove(pointer: Phaser.Input.Pointer) {
         if (!this.dragGhost || !this.draggedContainer) return;
         this.dragGhost.setPosition(pointer.x, pointer.y);
@@ -500,7 +430,11 @@ export class SimulatorStabilitas extends Scene {
 
         const slot = this.findSlotAt(pointer);
         if (!slot) {
-            this.restoreToOrigin(container, originSlotId);
+            if (originSlotId && this.isPointerOverPalette(pointer)) {
+                this.returnContainerToPalette(container);
+            } else {
+                this.restoreToOrigin(container, originSlotId);
+            }
             return;
         }
 

@@ -10,8 +10,10 @@ import {
 } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
 import { BadgeId, unlockBadge } from "../../BadgeState";
+import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { ModuleId, unlockNextModuleAfter } from "../../ModuleProgress";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 export interface QuizQuestion {
     question: string;
@@ -25,6 +27,10 @@ export interface QuizConfig {
     passScore: number;
     badgeId: BadgeId;
     badgeName: string;
+    /** Extra congratulatory popup shown on top of the pass screen once the
+     * student passes — used for the cumulative final-evaluation quiz's
+     * "you've finished the whole module" moment. */
+    perfectScoreMessage?: string;
 }
 
 export interface QuizSceneData {
@@ -34,6 +40,33 @@ export interface QuizSceneData {
     /** The module this quiz belongs to — finishing the quiz (reaching the
      * result screen, pass or fail) unlocks whatever module comes next. */
     moduleId?: ModuleId;
+}
+
+function shuffled<T>(items: T[]): T[] {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+/** Randomizes both question order and each question's option order (so the
+ * correct answer isn't always e.g. option A) — a fresh shuffle every time a
+ * quiz starts, so memorizing "the 2nd question" or "the 1st option" never
+ * pays off across attempts. */
+function shuffleQuizConfig(config: QuizConfig): QuizConfig {
+    return {
+        ...config,
+        questions: shuffled(config.questions).map((question) => {
+            const optionOrder = shuffled(question.options.map((_, index) => index));
+            return {
+                question: question.question,
+                options: optionOrder.map((originalIndex) => question.options[originalIndex]),
+                correctIndex: optionOrder.indexOf(question.correctIndex),
+            };
+        }),
+    };
 }
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
@@ -71,7 +104,7 @@ export class QuizScene extends Scene {
     }
 
     init(data: QuizSceneData) {
-        this.quizData = data;
+        this.quizData = { ...data, config: shuffleQuizConfig(data.config) };
         this.questionIndex = 0;
         this.selectedIndex = null;
         this.answered = false;
@@ -101,11 +134,13 @@ export class QuizScene extends Scene {
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         playSceneEnter(this, this.root);
+        startQuizBgm(this);
 
         EventBus.emit("current-scene-ready", this);
 
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
+            stopQuizBgm();
         });
     }
 
@@ -255,6 +290,9 @@ export class QuizScene extends Scene {
                     this.answered = true;
                     if (index === question.correctIndex) {
                         this.correctCount += 1;
+                        playSfx(this, SFX_KEYS.quizCorrect);
+                    } else {
+                        playSfx(this, SFX_KEYS.quizWrong);
                     }
                     this.renderQuestion();
                 });
@@ -318,12 +356,24 @@ export class QuizScene extends Scene {
         const passed = this.correctCount >= config.passScore;
         const centerX = CARD_X + CARD_WIDTH / 2;
 
-        if (this.quizData.moduleId) {
+        // Only a full pass unlocks the next module — getting even one
+        // question wrong must not open it (e.g. Simulator Stabilitas stays
+        // locked unless every SOP question is answered correctly).
+        if (this.quizData.moduleId && passed) {
             unlockNextModuleAfter(this.quizData.moduleId);
         }
 
         if (passed) {
             unlockBadge(config.badgeId);
+        }
+
+        // A perfect score on a quiz with perfectScoreMessage set (currently
+        // just the cumulative final-evaluation quiz) gets its own single
+        // dedicated screen instead of layering a "you passed" screen and a
+        // celebratory popup on top of each other.
+        if (passed && config.perfectScoreMessage) {
+            this.renderPerfectScoreResult(config.perfectScoreMessage);
+            return;
         }
 
         const icon = this.add
@@ -435,6 +485,64 @@ export class QuizScene extends Scene {
 
             this.bodyContainer.add([retryBtn, retryLabel, returnBtn, returnLabel]);
         }
+    }
+
+    /** The perfect-score result screen for a quiz with perfectScoreMessage
+     * set — one dedicated page (trophy, congratulatory message, badge line,
+     * single "Selesai" button) rather than the normal pass screen with a
+     * popup stacked on top of it. */
+    private renderPerfectScoreResult(message: string) {
+        const config = this.quizData.config;
+        const centerX = CARD_X + CARD_WIDTH / 2;
+        const centerY = BODY_TOP + (CARD_HEIGHT - HEADER_HEIGHT) / 2;
+
+        const icon = this.add
+            .text(centerX, centerY - 150, "🏆", { fontFamily: "Arial", fontSize: 64 })
+            .setOrigin(0.5);
+
+        const text = this.add
+            .text(centerX, centerY - 60, message, {
+                fontFamily: "Arial Black",
+                fontSize: 22,
+                color: "#1f8d52",
+                align: "center",
+                lineSpacing: 10,
+                wordWrap: { width: CONTENT_WIDTH },
+            })
+            .setOrigin(0.5);
+
+        const badgeLine = this.add
+            .text(centerX, centerY + 30, `Lencana "${config.badgeName}" berhasil diklaim!`, {
+                fontFamily: "Arial Black",
+                fontSize: 15,
+                color: PRIMARY_BLUE_HEX,
+                align: "center",
+                wordWrap: { width: CONTENT_WIDTH },
+            })
+            .setOrigin(0.5);
+
+        const buttonWidth = 240;
+        const buttonHeight = 52;
+        const buttonY = centerY + 110;
+
+        const button = this.add
+            .rectangle(centerX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
+            .setInteractive({ useHandCursor: true });
+        const buttonLabel = this.add
+            .text(centerX, buttonY, "Selesai", {
+                fontFamily: "Arial Black",
+                fontSize: 16,
+                color: "#ffffff",
+            })
+            .setOrigin(0.5);
+        button.on("pointerover", () => button.setFillStyle(0x2558b8, 1));
+        button.on("pointerout", () => button.setFillStyle(PRIMARY_BLUE, 1));
+        button.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.returnToModule();
+        });
+
+        this.bodyContainer.add([icon, text, badgeLine, button, buttonLabel]);
     }
 
     private layout(width: number, height: number) {

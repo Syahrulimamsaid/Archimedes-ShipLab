@@ -122,14 +122,6 @@ export class MainMenu extends Scene {
 
         this.bottomButtons = [
             new ButtonImage(this, {
-                texture: "home.btn.panduan",
-                width: 350,
-                height: 120,
-                hoverAnimation: "popup",
-                hoverScale: 1.03,
-                hoverOffsetY: 4,
-            }),
-            new ButtonImage(this, {
                 texture: "home.btn.tentang",
                 width: 350,
                 height: 120,
@@ -141,11 +133,8 @@ export class MainMenu extends Scene {
 
         this.bottomButtons[0].on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
-            playSfx(this, SFX_KEYS.indianSong);
+            this.scene.start("Tentang");
         });
-        this.bottomButtons[1].on("pointerdown", () =>
-            playSfx(this, SFX_KEYS.click),
-        );
 
         this.exitModal = new ModalExit(this, () =>
             this.scene.start("Preloader"),
@@ -456,10 +445,12 @@ export class MainMenu extends Scene {
         const bottomButtonWidth = 350 * bottomButtonScale;
         const bottomButtonHeight = 120 * bottomButtonScale;
 
-        this.bottomButtons[0].setPosition(180, height - 60);
+        // Flush against the true right edge (a small fixed margin, not a
+        // percentage of the character column) so it never drifts into the
+        // character artwork or the centered tagline bar at other aspect ratios.
+        const bottomButtonMargin = 24;
+        this.bottomButtons[0].setPosition(width - bottomButtonMargin - bottomButtonWidth / 2, height - 60);
         this.bottomButtons[0].setSize(bottomButtonWidth, bottomButtonHeight);
-        this.bottomButtons[1].setPosition(width - 180, height - 60);
-        this.bottomButtons[1].setSize(bottomButtonWidth, bottomButtonHeight);
 
         this.exitModal.layout(centerX, centerY, width, height);
     }

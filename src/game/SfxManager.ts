@@ -2,7 +2,8 @@ import { Scene } from "phaser";
 
 export const SFX_KEYS = {
     click: "sfx.menuClick",
-    indianSong: "sfx.indianSong",
+    quizWrong: "sfx.quizWrong",
+    quizCorrect: "sfx.quizCorrect",
 } as const;
 
 /** Plays a one-shot sound effect by key. Scene.sound is a shared reference

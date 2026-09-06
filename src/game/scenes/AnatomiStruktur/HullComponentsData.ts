@@ -12,7 +12,9 @@ export interface HullComponentData extends HullComponentInfo {
 // MainMenu's profile card (see BadgeState.ts).
 export const SOP_DARURAT_QUIZ: QuizConfig = {
     title: "KUIS SOP DARURAT KEBOCORAN",
-    passScore: 3,
+    // All 5 must be correct — a single wrong answer keeps Simulator
+    // Stabilitas locked (see QuizScene.renderResult()'s unlock gating).
+    passScore: 5,
     badgeId: "ship-construction-surveyor",
     badgeName: "Ship Construction Surveyor",
     questions: [
@@ -58,6 +60,16 @@ export const SOP_DARURAT_QUIZ: QuizConfig = {
                 "Baja marin (marine steel) dengan lapisan epoxy / zinc rich primer",
             ],
             correctIndex: 3,
+        },
+        {
+            question: "Setelah kebocoran teratasi, mengapa pintu kedap air tidak boleh langsung dibuka kembali tanpa prosedur?",
+            options: [
+                "Karena harus menunggu konfirmasi bahwa kompartemen benar-benar aman dan tekanan air di sekitarnya sudah stabil",
+                "Karena pintu kedap air hanya boleh dibuka satu kali dalam sehari",
+                "Karena pembukaan pintu membutuhkan izin tertulis dari galangan kapal",
+                "Karena pintu kedap air akan otomatis terkunci selama 24 jam setelah ditutup",
+            ],
+            correctIndex: 0,
         },
     ],
 };

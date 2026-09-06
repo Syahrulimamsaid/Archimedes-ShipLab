@@ -13,9 +13,12 @@ export class Boot extends Scene {
         this.load.image("character", "assets/character.png");
         this.load.audio("bgm.main", "assets/bgm/bluelike_u-7-wizard-cute-bgm-274665.mp3");
         this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
-        this.load.audio("sfx.indianSong", "assets/soundeffect/indian_song.mp3");
+        this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
+        this.load.audio("sfx.quizWrong", "assets/soundeffect/quiz_wrong.webm");
+        this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");
 
         this.load.image("background.home", "assets/home/bg.png");
+        this.load.image("tentang.background", "assets/bg_tentang.png");
         this.load.image(
             "home.card.anatomi",
             "assets/home/card-anatomi-struktur_new.png",
@@ -30,7 +33,6 @@ export class Boot extends Scene {
         );
         this.load.image("home.card.profile", "assets/home/card_profile.png");
         this.load.image("home.bar.info", "assets/home/bar_info.png");
-        this.load.image("home.btn.panduan", "assets/home/btn_panduan.png");
         this.load.image("home.btn.tentang", "assets/home/btn_tentang.png");
         this.load.image("home.btn.settings", "assets/home/btn_settings.png");
         this.load.image(

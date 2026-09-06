@@ -1,32 +1,32 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
+import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
+import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { createAwardCard } from "./AwardCard";
-import { createChecklistCard } from "./ChecklistCard";
-import { createHeroFeedbackCard } from "./HeroFeedbackCard";
-import { ReflectionCard } from "./ReflectionCard";
-import { createScoreCard } from "./ScoreCard";
-import { createTipsAndRepeatRow } from "./TipsAndRepeatRow";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { FINAL_EVALUATION_QUIZ } from "./FinalQuizData";
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
 // window, same approach as the other module scenes.
 const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 1060;
 const MARGIN = 40;
-const LEFT_COLUMN_WIDTH = 560;
-const RIGHT_COLUMN_X = MARGIN + LEFT_COLUMN_WIDTH + 30;
-const RIGHT_COLUMN_WIDTH = DESIGN_WIDTH - RIGHT_COLUMN_X - MARGIN;
-const CONTENT_TOP = 310;
-const ROW_HEIGHT = 290;
-const ROW_GAP = 20;
-const TIPS_ROW_HEIGHT = 90;
+const CARD_WIDTH = 900;
+const CARD_HEIGHT = 580;
+const CARD_X = DESIGN_WIDTH / 2 - CARD_WIDTH / 2;
+const CARD_Y = 300;
+const HEADER_HEIGHT = 64;
 
+/**
+ * Hasil & Umpan Balik's whole purpose is the cumulative final-evaluation
+ * quiz — this scene is just its info/launch screen: what the quiz covers,
+ * what finishing it earns, and a single "MULAI EVALUASI" button that hands
+ * off to QuizScene (see FinalQuizData.ts for the actual 10 questions).
+ */
 export class HasilUmpanBalik extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
-    private reflectionCard!: ReflectionCard;
 
     constructor() {
         super("HasilUmpanBalik");
@@ -47,7 +47,6 @@ export class HasilUmpanBalik extends Scene {
 
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
-            this.reflectionCard.destroy();
         });
     }
 
@@ -62,51 +61,84 @@ export class HasilUmpanBalik extends Scene {
     private buildHeader() {
         const header = new ModuleHeader(this, {
             x: MARGIN,
-            badgeLabel: "MODUL ANATOMI STRUKTUR",
-            breadcrumbLabel: "Hasil & Umpan Balik",
+            badgeLabel: "MODUL HASIL & UMPAN BALIK",
+            breadcrumbLabel: "Kuis Evaluasi Akhir",
             heading: "Hasil & Umpan Balik",
-            subtitle:
-                "Berikut adalah hasil pembelajaranmu. Terus tingkatkan pemahaman\ndan penerapan prosedur keselamatan pelayaran!",
+            subtitle: "Uji seluruh pemahamanmu lewat kuis evaluasi akhir sebelum menyelesaikan modul ini.",
             onBack: () => this.goTo("MainMenu"),
         });
         this.root.add(header.view);
     }
 
     private buildContent() {
-        const leftColumnHeight = ROW_HEIGHT * 2 + ROW_GAP * 2 + TIPS_ROW_HEIGHT;
+        const chrome = createHeaderBarCard(this, CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, "KUIS EVALUASI AKHIR", HEADER_HEIGHT);
+        this.root.add(chrome);
 
-        this.root.add(
-            createHeroFeedbackCard(this, MARGIN, CONTENT_TOP, LEFT_COLUMN_WIDTH, leftColumnHeight),
-        );
+        const centerX = CARD_X + CARD_WIDTH / 2;
+        const contentWidth = CARD_WIDTH - 140;
+        const bodyTop = CARD_Y + HEADER_HEIGHT + 36;
 
-        const columnWidth = (RIGHT_COLUMN_WIDTH - ROW_GAP) / 2;
-        const scoreX = RIGHT_COLUMN_X;
-        const awardX = RIGHT_COLUMN_X + columnWidth + ROW_GAP;
-        const bottomRowY = CONTENT_TOP + ROW_HEIGHT + ROW_GAP;
-        const tipsRowY = bottomRowY + ROW_HEIGHT + ROW_GAP;
+        const icon = this.add.text(centerX, bodyTop, "🏁", { fontFamily: "Arial", fontSize: 56 }).setOrigin(0.5, 0);
 
-        this.root.add(createScoreCard(this, scoreX, CONTENT_TOP, columnWidth, ROW_HEIGHT, 85, 100));
-        this.root.add(
-            createAwardCard(
-                this,
-                awardX,
-                CONTENT_TOP,
-                columnWidth,
-                ROW_HEIGHT,
-                "MASTER OF MARITIME SAFETY",
-                "Luar biasa! Kamu menunjukkan ketepatan taktis dan kepatuhan\ntinggi terhadap prosedur keselamatan pelayaran.",
-            ),
-        );
+        const title = this.add
+            .text(centerX, bodyTop + 88, "Evaluasi Akhir: Semua Materi", {
+                fontFamily: "Arial Black",
+                fontSize: 24,
+                color: DARK_NAVY,
+                align: "center",
+            })
+            .setOrigin(0.5, 0);
 
-        this.root.add(createChecklistCard(this, scoreX, bottomRowY, columnWidth, ROW_HEIGHT, 90));
+        const description = this.add
+            .text(
+                centerX,
+                bodyTop + 138,
+                'Kuis ini terdiri dari 10 soal yang merangkum seluruh materi — mulai dari struktur dasar berganda kapal dan SOP darurat kebocoran, hingga simulasi distribusi muatan & stabilitas kapal.\n\nUrutan soal dan pilihan jawaban diacak setiap kali kamu memulai. Jawablah seluruh soal dengan benar untuk mengklaim lencana "Master of Maritime Safety" dan menyelesaikan modul ini sepenuhnya.',
+                {
+                    fontFamily: "Arial",
+                    fontSize: 15,
+                    color: BODY_TEXT,
+                    align: "center",
+                    lineSpacing: 6,
+                    wordWrap: { width: contentWidth },
+                },
+            )
+            .setOrigin(0.5, 0);
 
-        this.reflectionCard = new ReflectionCard(this, awardX, bottomRowY, columnWidth, ROW_HEIGHT);
-        this.root.add(this.reflectionCard.view);
+        const buttonWidth = 300;
+        const buttonHeight = 56;
+        const buttonY = CARD_Y + CARD_HEIGHT - 80;
 
-        this.root.add(
-            createTipsAndRepeatRow(this, scoreX, tipsRowY, RIGHT_COLUMN_WIDTH, TIPS_ROW_HEIGHT, () =>
-                this.goTo("AnatomiStruktur"),
-            ),
+        const button = this.add
+            .rectangle(centerX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
+            .setInteractive({ useHandCursor: true });
+        const buttonLabel = this.add
+            .text(centerX, buttonY, "🚀 MULAI EVALUASI", {
+                fontFamily: "Arial Black",
+                fontSize: 16,
+                color: "#ffffff",
+            })
+            .setOrigin(0.5);
+
+        button.on("pointerover", () => button.setFillStyle(0x2558b8, 1));
+        button.on("pointerout", () => button.setFillStyle(PRIMARY_BLUE, 1));
+        button.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.startFinalQuiz();
+        });
+
+        this.root.add([icon, title, description, button, buttonLabel]);
+    }
+
+    /** Launches the cumulative 10-question evaluation quiz covering every
+     * module — see FinalQuizData.ts. */
+    private startFinalQuiz() {
+        playSceneExit(this, this.root, () =>
+            this.scene.start("QuizScene", {
+                config: FINAL_EVALUATION_QUIZ,
+                returnScene: "HasilUmpanBalik",
+                moduleId: "hasil-umpan-balik",
+            }),
         );
     }
 
@@ -119,11 +151,5 @@ export class HasilUmpanBalik extends Scene {
         const rootX = (width - DESIGN_WIDTH * scale) / 2;
         const rootY = (height - DESIGN_HEIGHT * scale) / 2;
         this.root.setPosition(rootX, rootY);
-
-        const canvas = this.sys.game.canvas;
-        const canvasRect = canvas.getBoundingClientRect();
-        const domScaleX = canvasRect.width / width;
-        const domScaleY = canvasRect.height / height;
-        this.reflectionCard.layout(scale, rootX, rootY, canvasRect, domScaleX, domScaleY);
     }
 }
