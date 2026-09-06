@@ -112,9 +112,10 @@ export class MenuCard {
 
         const left = x - width / 2;
         const top = y - height / 2;
+        const overlayRadius = 36;
 
         this.lockOverlay.fillStyle(0x000000, 0.2);
-        this.lockOverlay.fillRect(left, top, width, height);
+        this.lockOverlay.fillRoundedRect(left, top, width, height, overlayRadius);
 
         const iconCenterX = x;
         const iconCenterY = y;
