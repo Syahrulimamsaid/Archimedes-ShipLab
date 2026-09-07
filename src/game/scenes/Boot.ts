@@ -18,7 +18,6 @@ export class Boot extends Scene {
         this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");
 
         this.load.image("background.home", "assets/home/bg.png");
-        this.load.image("tentang.background", "assets/bg_tentang.png");
         this.load.image(
             "home.card.anatomi",
             "assets/home/card-anatomi-struktur_new.png",

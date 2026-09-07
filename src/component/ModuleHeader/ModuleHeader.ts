@@ -29,7 +29,7 @@ export class ModuleHeader {
     constructor(scene: Scene, config: ModuleHeaderConfig) {
         const { x } = config;
 
-        const backButton = this.buildBackButton(scene, x, config.onBack);
+        const backButton = createBackButton(scene, x, 40, config.onBack);
 
         const breadcrumbY = 148;
         const badgeText = scene.add.text(0, 0, config.badgeLabel, {
@@ -84,78 +84,84 @@ export class ModuleHeader {
         ];
     }
 
-    private buildBackButton(scene: Scene, x: number, onBack: () => void) {
-        const width = 172;
-        const height = 54;
-        const centerX = x + width / 2;
-        const centerY = 67;
+}
 
-        const bg = scene.add.graphics();
-        bg.fillStyle(PRIMARY_BLUE, 1);
-        bg.fillRoundedRect(-width / 2, -height / 2, width, height, height / 2);
+/**
+ * The solid blue "← Kembali" pill used by ModuleHeader — also usable
+ * standalone by scenes that want the same back button without the rest of
+ * ModuleHeader's badge/heading/subtitle block (e.g. Tentang).
+ */
+export function createBackButton(scene: Scene, x: number, y: number, onBack: () => void): GameObjects.Container {
+    const width = 172;
+    const height = 54;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
 
-        // A drawn arrow icon reads much cleaner at this size than a text
-        // "←" glyph.
-        const arrowTipX = -width / 2 + 20;
-        const arrow = scene.add.graphics();
-        arrow.fillStyle(0xffffff, 1);
-        arrow.beginPath();
-        arrow.moveTo(arrowTipX, 0);
-        arrow.lineTo(arrowTipX + 12, -11);
-        arrow.lineTo(arrowTipX + 12, -3);
-        arrow.lineTo(arrowTipX + 28, -3);
-        arrow.lineTo(arrowTipX + 28, 3);
-        arrow.lineTo(arrowTipX + 12, 3);
-        arrow.lineTo(arrowTipX + 12, 11);
-        arrow.closePath();
-        arrow.fillPath();
+    const bg = scene.add.graphics();
+    bg.fillStyle(PRIMARY_BLUE, 1);
+    bg.fillRoundedRect(-width / 2, -height / 2, width, height, height / 2);
 
-        const label = scene.add
-            .text(-width / 2 + 66, 0, "Kembali", {
-                fontFamily: "Arial Black",
-                fontSize: 19,
-                color: "#ffffff",
-            })
-            .setOrigin(0, 0.5);
+    // A drawn arrow icon reads much cleaner at this size than a text
+    // "←" glyph.
+    const arrowTipX = -width / 2 + 20;
+    const arrow = scene.add.graphics();
+    arrow.fillStyle(0xffffff, 1);
+    arrow.beginPath();
+    arrow.moveTo(arrowTipX, 0);
+    arrow.lineTo(arrowTipX + 12, -11);
+    arrow.lineTo(arrowTipX + 12, -3);
+    arrow.lineTo(arrowTipX + 28, -3);
+    arrow.lineTo(arrowTipX + 28, 3);
+    arrow.lineTo(arrowTipX + 12, 3);
+    arrow.lineTo(arrowTipX + 12, 11);
+    arrow.closePath();
+    arrow.fillPath();
 
-        const hitArea = scene.add
-            .rectangle(0, 0, width, height, 0xffffff, 0)
-            .setInteractive({ useHandCursor: true });
+    const label = scene.add
+        .text(-width / 2 + 66, 0, "Kembali", {
+            fontFamily: "Arial Black",
+            fontSize: 19,
+            color: "#ffffff",
+        })
+        .setOrigin(0, 0.5);
 
-        const container = scene.add.container(centerX, centerY, [
-            bg,
-            arrow,
-            label,
-            hitArea,
-        ]);
+    const hitArea = scene.add
+        .rectangle(0, 0, width, height, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true });
 
-        hitArea.on("pointerover", () => {
-            scene.tweens.killTweensOf(container);
-            scene.tweens.add({
-                targets: container,
-                scaleX: 1.05,
-                scaleY: 1.05,
-                y: centerY - 3,
-                duration: 140,
-                ease: "Back.Out",
-            });
+    const container = scene.add.container(centerX, centerY, [
+        bg,
+        arrow,
+        label,
+        hitArea,
+    ]);
+
+    hitArea.on("pointerover", () => {
+        scene.tweens.killTweensOf(container);
+        scene.tweens.add({
+            targets: container,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            y: centerY - 3,
+            duration: 140,
+            ease: "Back.Out",
         });
-        hitArea.on("pointerout", () => {
-            scene.tweens.killTweensOf(container);
-            scene.tweens.add({
-                targets: container,
-                scaleX: 1,
-                scaleY: 1,
-                y: centerY,
-                duration: 140,
-                ease: "Quad.Out",
-            });
+    });
+    hitArea.on("pointerout", () => {
+        scene.tweens.killTweensOf(container);
+        scene.tweens.add({
+            targets: container,
+            scaleX: 1,
+            scaleY: 1,
+            y: centerY,
+            duration: 140,
+            ease: "Quad.Out",
         });
-        hitArea.on("pointerdown", () => {
-            playSfx(scene, SFX_KEYS.click);
-            onBack();
-        });
+    });
+    hitArea.on("pointerdown", () => {
+        playSfx(scene, SFX_KEYS.click);
+        onBack();
+    });
 
-        return container;
-    }
+    return container;
 }
