@@ -1,12 +1,12 @@
 import { GameObjects, Scene, Scale } from "phaser";
 
-// The actual asset loading (everything in Boot.ts) already finishes before
-// this scene even starts — Phaser only calls create() once loading is
-// done. So the progress bar here has nothing real to time itself against;
-// without an artificial pace it would just snap straight to 100%. This is
-// the minimum time the bar animation takes before "tap to continue" can
-// appear, regardless of how fast (or slow) real loading actually was.
-const MIN_LOAD_DURATION = 2000;
+// Boot.ts only loads the handful of assets this scene needs to render
+// itself (background, logo, touch button) — everything else loads below in
+// preload(), while this screen is already visible, so the progress bar
+// reflects real loading progress instead of a canvas sitting on a flat
+// background color. This is just a floor so the screen doesn't flash by
+// instantly if everything happens to load from cache in a few milliseconds.
+const MIN_DISPLAY_DURATION = 500;
 
 export class Preloader extends Scene {
     private background!: GameObjects.Image;
@@ -66,6 +66,10 @@ export class Preloader extends Scene {
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
 
+        this.load.on("progress", (value: number) => {
+            this.progressValue = value;
+            this.updateProgressDisplay();
+        });
         this.load.once("complete", () => {
             this.realLoadComplete = true;
             this.tryFinishLoading();
@@ -73,14 +77,91 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        this.load.setPath("assets");
+        this.load.image("star", "assets/star.png");
+        this.load.image("profile.human", "assets/profile.png");
+        this.load.image("character", "assets/character.png");
+        this.load.audio("bgm.main", "assets/bgm/bluelike_u-7-wizard-cute-bgm-274665.mp3");
+        this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
+        this.load.audio("bgm.dubbing_greeting", "assets/bgm/dubbing_greeting.ogg");
+        this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
+        this.load.audio("sfx.quizWrong", "assets/soundeffect/quiz_wrong.webm");
+        this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");
 
-        this.load.image("star", "star.png");
+        this.load.image("background.home", "assets/home/bg.png");
+        this.load.image(
+            "home.card.anatomi",
+            "assets/home/card-anatomi-struktur_new.png",
+        );
+        this.load.image(
+            "home.card.stabilitas",
+            "assets/home/card-simulator-stablitas-new.png",
+        );
+        this.load.image(
+            "home.card.hasil",
+            "assets/home/card-hasil_new.png",
+        );
+        this.load.image(
+            "home.card.anatomi.vertical",
+            "assets/home/card-anatomi-struktur-ver.png",
+        );
+        this.load.image(
+            "home.card.stabilitas.vertical",
+            "assets/home/card-simulator-stablitas-ver.png",
+        );
+        this.load.image(
+            "home.card.hasil.vertical",
+            "assets/home/card-hasil-ver.png",
+        );
+        this.load.image("home.card.profile", "assets/home/card_profile.png");
+        this.load.image("home.bar.info", "assets/home/bar_info.png");
+        this.load.image("home.btn.tentang", "assets/home/btn_tentang.png");
+        this.load.image("home.btn.settings", "assets/home/btn_settings.png");
+        this.load.image(
+            "home.btn.achievements",
+            "assets/home/btn_achievements.png",
+        );
+        this.load.image("home.btn.power", "assets/home/btn_power.png");
+        this.load.image("home.btn.mulai", "assets/home/btn-mulai_modul.png");
+        this.load.image("home.btn.exit", "assets/home/btn_exit.png");
+
+        //Anatomi Stucture
+        this.load.image(
+            "AnatomiStructure.background",
+            "assets/bg-sub.png",
+        );
+        this.load.image(
+            "AnatomiStructure.panel",
+            "assets/AnatomiStructure/panel.png",
+        );
+        this.load.image(
+            "AnatomiStructure.card.kuis",
+            "assets/AnatomiStructure/card_kuis.png",
+        );
+        this.load.image(
+            "AnatomiStructure.btn.kuis",
+            "assets/AnatomiStructure/btn_kuis.png",
+        );
+        this.load.image(
+            "AnatomiStructure.btn.kembali",
+            "assets/AnatomiStructure/btn_kembali.png",
+        );
+        this.load.image(
+            "AnatomiStructure.card.infoPintu",
+            "assets/AnatomiStructure/card_info_pintu.png",
+        );
     }
 
     create() {
         this.playIntroAnimation();
-        this.playProgressAnimation();
+
+        // Started here, once the scene has actually reached create() rather
+        // than from init() (which runs before preload()'s loading queue
+        // even starts), so it can't ever race ahead of the scene being
+        // fully up and running.
+        this.time.delayedCall(MIN_DISPLAY_DURATION, () => {
+            this.minDurationElapsed = true;
+            this.tryFinishLoading();
+        });
 
         // `on`, not `once` — a click while still loading must not consume
         // the listener (isReadyToContinue is false, so it's a no-op), or
@@ -111,41 +192,14 @@ export class Preloader extends Scene {
         this.layout(gameSize.width, gameSize.height);
     }
 
-    /** Drives the visible fill from 0 to 100% over MIN_LOAD_DURATION, in two
-     * stages — a quick ramp up to 92% followed by a slower final push — the
-     * same "fast, then a final crawl" pace real download bars tend to have,
-     * rather than one flat linear sweep. */
-    private playProgressAnimation() {
-        this.tweens.add({
-            targets: this,
-            progressValue: 0.92,
-            duration: MIN_LOAD_DURATION * 0.65,
-            ease: "Cubic.Out",
-            onUpdate: () => this.updateProgressDisplay(),
-            onComplete: () => {
-                this.tweens.add({
-                    targets: this,
-                    progressValue: 1,
-                    duration: MIN_LOAD_DURATION * 0.35,
-                    ease: "Sine.In",
-                    onUpdate: () => this.updateProgressDisplay(),
-                    onComplete: () => {
-                        this.minDurationElapsed = true;
-                        this.tryFinishLoading();
-                    },
-                });
-            },
-        });
-    }
-
     private updateProgressDisplay() {
         const percent = Math.round(this.progressValue * 100);
         this.progressText.setText(`${percent}% Memuat Konten`);
         this.layout(this.scale.width, this.scale.height);
     }
 
-    /** Only reveals "tap to continue" once both the paced bar animation has
-     * finished AND assets are actually loaded — whichever takes longer. */
+    /** Only reveals "tap to continue" once both the minimum display floor
+     * has elapsed AND assets are actually loaded — whichever takes longer. */
     private tryFinishLoading() {
         if (!this.minDurationElapsed || !this.realLoadComplete || this.isReadyToContinue) {
             return;

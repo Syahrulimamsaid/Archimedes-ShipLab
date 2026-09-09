@@ -7,7 +7,7 @@ import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { isModuleUnlocked, ModuleId } from "../../ModuleProgress";
 import { CharacterPanel } from "./CharacterPanel";
-import { MenuCard } from "./MenuCard";
+import { CardIntroStyle, MenuCard } from "./MenuCard";
 import { ModalExit } from "./ModalExit";
 
 const MENU_MODULES: ModuleId[] = [
@@ -31,7 +31,10 @@ export class MainMenu extends Scene {
     private bgmToggleButton!: BgmToggleButton;
 
     private bottomButtons: ButtonImage[] = [];
-    private hasPlayedIntro = false;
+    // The entrance animation itself replays every time MainMenu loads
+    // (consistent with every other scene's enter transition) — only the
+    // character greeting VO is gated to the very first visit per session.
+    private hasPlayedGreeting = false;
 
     // The logo's layout position (updated on every resize) plus a small
     // side-to-side sway offset animated continuously on top of it.
@@ -73,27 +76,27 @@ export class MainMenu extends Scene {
 
         this.menuCards = [
             new MenuCard(this, {
-                texture: "home.card.anatomi",
+                texture: "home.card.anatomi.vertical",
                 locked: !isModuleUnlocked("anatomi-struktur"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.scene.start("AnatomiStruktur");
+                    this.playExitAnimation(() => this.scene.start("AnatomiStruktur"));
                 },
             }),
             new MenuCard(this, {
-                texture: "home.card.stabilitas",
+                texture: "home.card.stabilitas.vertical",
                 locked: !isModuleUnlocked("simulator-stabilitas"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.scene.start("SimulatorStabilitas");
+                    this.playExitAnimation(() => this.scene.start("SimulatorStabilitas"));
                 },
             }),
             new MenuCard(this, {
-                texture: "home.card.hasil",
+                texture: "home.card.hasil.vertical",
                 locked: !isModuleUnlocked("hasil-umpan-balik"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.scene.start("HasilUmpanBalik");
+                    this.playExitAnimation(() => this.scene.start("HasilUmpanBalik"));
                 },
             }),
         ];
@@ -133,11 +136,11 @@ export class MainMenu extends Scene {
 
         this.bottomButtons[0].on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
-            this.scene.start("Tentang");
+            this.playExitAnimation(() => this.scene.start("Tentang"));
         });
 
         this.exitModal = new ModalExit(this, () =>
-            this.scene.start("Preloader"),
+            this.playExitAnimation(() => this.scene.start("Preloader")),
         );
 
         this.refreshModuleLocks();
@@ -184,45 +187,142 @@ export class MainMenu extends Scene {
         });
     }
 
+    /** Every component gets its own entrance — mixed slide directions plus
+     * a couple of bounces — rather than the whole screen rising in as one
+     * uniform block. */
     private playIntroAnimation() {
-        if (this.hasPlayedIntro) {
-            return;
+        // A one-shot character greeting VO, layered on top of the looping
+        // bgm.main (already started via initBgm() above) rather than
+        // replacing it — only on this very first MainMenu load per session,
+        // unlike the animation below which replays every visit.
+        if (!this.hasPlayedGreeting) {
+            this.hasPlayedGreeting = true;
+            playSfx(this, SFX_KEYS.greeting, 0.9);
         }
 
-        this.hasPlayedIntro = true;
+        // Logo: a fade + pop, not a position slide — its x is already
+        // continuously driven by the sway animation.
+        const logoScaleX = this.logo.scaleX;
+        const logoScaleY = this.logo.scaleY;
+        this.logo.alpha = 0;
+        this.logo.scaleX = logoScaleX * 0.9;
+        this.logo.scaleY = logoScaleY * 0.9;
+        this.tweens.add({
+            targets: this.logo,
+            alpha: 1,
+            scaleX: logoScaleX,
+            scaleY: logoScaleY,
+            duration: 550,
+            ease: "Back.Out",
+        });
 
-        const animatedItems: Array<
-            GameObjects.GameObject & {
-                alpha: number;
-                y: number;
-                scaleX: number;
-                scaleY: number;
-            }
-        > = [this.welcomeCard, this.welcomeTitle, this.welcomeSubtitle];
-
-        animatedItems.forEach((item, index) => {
+        // Welcome card + text: slides down from above.
+        const headerItems: Array<GameObjects.GameObject & { alpha: number; y: number }> = [
+            this.welcomeCard,
+            this.welcomeTitle,
+            this.welcomeSubtitle,
+        ];
+        headerItems.forEach((item, index) => {
+            const baseY = item.y;
             item.alpha = 0;
-            item.y += 18;
-            item.scaleX *= 0.96;
-            item.scaleY *= 0.96;
-
+            item.y = baseY - 30;
             this.tweens.add({
                 targets: item,
                 alpha: 1,
-                y: item.y - 18,
-                scaleX: item.scaleX / 0.96,
-                scaleY: item.scaleY / 0.96,
+                y: baseY,
                 duration: 500,
-                delay: index * 80,
+                delay: 80 + index * 60,
                 ease: "Back.Out",
             });
         });
 
-        this.characterPanel.playIntroAnimation(3 * 80);
-
+        // Menu cards: a different style per card so the row of three
+        // doesn't read as one uniform block.
+        const cardStyles: CardIntroStyle[] = ["slideUp", "bounce", "slideDown"];
         this.menuCards.forEach((card, index) => {
-            card.playIntroAnimation((index + 3) * 80);
+            card.playIntroAnimation(260 + index * 90, cardStyles[index % cardStyles.length]);
         });
+
+        this.characterPanel.playIntroAnimation(320);
+
+        // Bottom bar, the Tentang button, and the top-right controls rise
+        // in last, after the main content is in place.
+        this.introSlideUp(this.bottomInfoBar, 560);
+        this.introSlideUp(this.bottomButtons[0].view, 620);
+        this.introFadeScale(this.exitButton.view, 200);
+        this.introFadeScale(this.bgmToggleButton.view, 260);
+    }
+
+    private introSlideUp(target: GameObjects.GameObject & { alpha: number; y: number }, delay: number) {
+        const baseY = target.y;
+        target.alpha = 0;
+        target.y = baseY + 30;
+        this.tweens.add({
+            targets: target,
+            alpha: 1,
+            y: baseY,
+            duration: 450,
+            delay,
+            ease: "Back.Out",
+        });
+    }
+
+    private introFadeScale(target: GameObjects.GameObject & { alpha: number; scaleX: number; scaleY: number }, delay: number) {
+        target.alpha = 0;
+        target.scaleX = 0.8;
+        target.scaleY = 0.8;
+        this.tweens.add({
+            targets: target,
+            alpha: 1,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 400,
+            delay,
+            ease: "Back.Out",
+        });
+    }
+
+    /** The reverse of playIntroAnimation — every component animates out
+     * individually before the next scene actually starts, instead of the
+     * screen just cutting away. */
+    private playExitAnimation(onComplete: () => void) {
+        this.tweens.killTweensOf(this); // stop the logo sway from fighting the fade-out below
+
+        let maxEnd = 0;
+        this.menuCards.forEach((card, index) => {
+            maxEnd = Math.max(maxEnd, card.playExitAnimation(index * 40));
+        });
+        maxEnd = Math.max(maxEnd, this.characterPanel.playExitAnimation(40));
+
+        const headerItems: Array<GameObjects.GameObject & { x: number; y: number; alpha: number }> = [
+            this.logo,
+            this.welcomeCard,
+            this.welcomeTitle,
+            this.welcomeSubtitle,
+        ];
+        headerItems.forEach((item) => {
+            maxEnd = Math.max(maxEnd, this.exitFade(item, -20, 0));
+        });
+
+        maxEnd = Math.max(maxEnd, this.exitFade(this.bottomInfoBar, 20, 0));
+        maxEnd = Math.max(maxEnd, this.exitFade(this.bottomButtons[0].view, 20, 0));
+        maxEnd = Math.max(maxEnd, this.exitFade(this.exitButton.view, 0, 0));
+        maxEnd = Math.max(maxEnd, this.exitFade(this.bgmToggleButton.view, 0, 0));
+
+        this.time.delayedCall(maxEnd, onComplete);
+    }
+
+    private exitFade(target: GameObjects.GameObject & { y: number; alpha: number }, dy: number, delay: number): number {
+        const duration = 280;
+        this.tweens.add({
+            targets: target,
+            y: target.y + dy,
+            alpha: 0,
+            duration,
+            delay,
+            ease: "Quad.In",
+        });
+        return delay + duration;
     }
 
     private layout(width: number, height: number) {
@@ -281,8 +381,10 @@ export class MainMenu extends Scene {
 
         const cardGapX = Math.max(22, width * 0.014);
         const cardGapY = Math.max(18, height * 0.02);
-        const cardAspect = 9 / 20;
-        const gridColumns = 2;
+        // Portrait cards now (matches the *-ver.png assets, ~1024x1536), a
+        // single row of 3 instead of the old 2-column wrapping landscape grid.
+        const cardAspect = 3 / 2;
+        const gridColumns = 3;
         const gridRows = Math.ceil(this.menuCards.length / gridColumns);
 
         const targetCardWidth = Math.min(

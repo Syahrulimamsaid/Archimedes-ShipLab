@@ -19,6 +19,11 @@ export class ExitButton {
     private icon: GameObjects.Graphics;
     private hitArea: GameObjects.Rectangle;
     private size: number;
+    // Stopped (not killTweensOf(this.container)) on the next hover — killing
+    // *every* tween on the container would also cut off an unrelated
+    // entrance/exit fade animating the same container, freezing it at
+    // whatever partial alpha it had reached.
+    private hoverTween: Phaser.Tweens.Tween | null = null;
 
     constructor(scene: Scene, config: ExitButtonConfig) {
         this.scene = scene;
@@ -76,8 +81,8 @@ export class ExitButton {
 
     private showHover() {
         const baseY = this.container.getData("baseY") as number;
-        this.scene.tweens.killTweensOf(this.container);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.container,
             scaleX: 1.08,
             scaleY: 1.08,
@@ -89,8 +94,8 @@ export class ExitButton {
 
     private hideHover() {
         const baseY = this.container.getData("baseY") as number;
-        this.scene.tweens.killTweensOf(this.container);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.container,
             scaleX: 1,
             scaleY: 1,

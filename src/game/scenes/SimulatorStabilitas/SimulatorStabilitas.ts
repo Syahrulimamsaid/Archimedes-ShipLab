@@ -2,7 +2,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
+import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
@@ -60,6 +60,7 @@ export class SimulatorStabilitas extends Scene {
     private currentScale = 1;
     private currentRootX = 0;
     private currentRootY = 0;
+    private transitionGroups: GameObjects.GameObject[][] = [];
 
     constructor() {
         super("SimulatorStabilitas");
@@ -69,15 +70,17 @@ export class SimulatorStabilitas extends Scene {
         this.background = this.add.image(0, 0, "AnatomiStructure.background");
         this.root = this.add.container(0, 0);
 
-        this.buildHeader();
-        this.buildCaseProgress();
-        this.buildBoard();
+        const groups: GameObjects.GameObject[][] = [];
+        trackGroup(this.root, groups, () => this.buildHeader());
+        trackGroup(this.root, groups, () => this.buildCaseProgress());
+        trackGroup(this.root, groups, () => this.buildBoard());
+        this.transitionGroups = groups;
 
         this.startCase(1);
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, this.root);
+        playSceneEnter(this, groups);
 
         this.input.on("pointermove", this.handlePointerMove, this);
         this.input.on("pointerup", this.handlePointerUp, this);
@@ -100,7 +103,7 @@ export class SimulatorStabilitas extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.root, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
     // ---- Header / progress --------------------------------------------------

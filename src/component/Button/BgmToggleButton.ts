@@ -36,6 +36,11 @@ export class BgmToggleButton {
     private trackWidth: number;
     private enabled: boolean;
     private onToggle: () => boolean;
+    // Stopped (not killTweensOf(this.container)) on the next hover — killing
+    // *every* tween on the container would also cut off an unrelated
+    // entrance/exit fade animating the same container, freezing it at
+    // whatever partial alpha it had reached.
+    private hoverTween: Phaser.Tweens.Tween | null = null;
 
     constructor(scene: Scene, config: BgmToggleButtonConfig) {
         this.scene = scene;
@@ -140,8 +145,8 @@ export class BgmToggleButton {
 
     private showHover() {
         const baseY = this.container.getData("baseY") as number;
-        this.scene.tweens.killTweensOf(this.container);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.container,
             scaleX: 1.06,
             scaleY: 1.06,
@@ -153,8 +158,8 @@ export class BgmToggleButton {
 
     private hideHover() {
         const baseY = this.container.getData("baseY") as number;
-        this.scene.tweens.killTweensOf(this.container);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.container,
             scaleX: 1,
             scaleY: 1,

@@ -27,22 +27,42 @@ export class CharacterPanel {
         this.character.setDisplaySize(characterWidth, characterHeight);
     }
 
+    /** Slides in from the right, unlike the cards/header which come from
+     * above/below — keeps the whole intro from reading as one uniform
+     * "everything rises together" motion. */
     playIntroAnimation(baseDelay: number) {
         const item = this.character;
+        const baseX = item.x;
         item.alpha = 0;
-        item.y += 18;
-        item.scaleX *= 0.96;
-        item.scaleY *= 0.96;
+        item.x = baseX + 60;
 
         this.scene.tweens.add({
             targets: item,
             alpha: 1,
-            y: item.y - 18,
-            scaleX: item.scaleX / 0.96,
-            scaleY: item.scaleY / 0.96,
-            duration: 500,
+            x: baseX,
+            duration: 550,
             delay: baseDelay,
             ease: "Back.Out",
         });
+    }
+
+    /** The reverse of playIntroAnimation — returns the total duration
+     * (delay + tween length) so the caller can wait for it before actually
+     * switching scenes. */
+    playExitAnimation(baseDelay: number): number {
+        const item = this.character;
+        const baseX = item.x;
+        const duration = 300;
+
+        this.scene.tweens.add({
+            targets: item,
+            alpha: 0,
+            x: baseX + 60,
+            duration,
+            delay: baseDelay,
+            ease: "Quad.In",
+        });
+
+        return baseDelay + duration;
     }
 }

@@ -24,6 +24,11 @@ export class ButtonImage {
     private image: GameObjects.Image;
     private hitArea: GameObjects.Rectangle;
     private config: Required<ButtonImageConfig>;
+    // Stopped (not killTweensOf(this.container)) on the next hover — killing
+    // *every* tween on the container would also cut off an unrelated
+    // entrance/exit fade animating the same container, freezing it at
+    // whatever partial alpha it had reached.
+    private hoverTween: Phaser.Tweens.Tween | null = null;
 
     constructor(scene: Scene, config: ButtonImageConfig) {
         this.scene = scene;
@@ -135,7 +140,7 @@ export class ButtonImage {
         const baseScaleY =
             (this.container.getData("baseScaleY") as number) ?? 1;
 
-        this.scene.tweens.killTweensOf(this.container);
+        this.hoverTween?.stop();
 
         const tweenConfig: Phaser.Types.Tweens.TweenBuilderConfig = {
             targets: this.container,
@@ -171,7 +176,7 @@ export class ButtonImage {
                 break;
         }
 
-        this.scene.tweens.add(tweenConfig);
+        this.hoverTween = this.scene.tweens.add(tweenConfig);
     }
 
     private hideHover() {
@@ -184,8 +189,8 @@ export class ButtonImage {
         const baseScaleY =
             (this.container.getData("baseScaleY") as number) ?? 1;
 
-        this.scene.tweens.killTweensOf(this.container);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.container,
             x: baseX,
             y: baseY,

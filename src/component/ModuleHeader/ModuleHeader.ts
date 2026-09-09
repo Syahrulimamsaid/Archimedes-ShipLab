@@ -136,9 +136,15 @@ export function createBackButton(scene: Scene, x: number, y: number, onBack: () 
         hitArea,
     ]);
 
+    // Stopped (not killTweensOf(container)) on the next hover — killing
+    // *every* tween on the container would also cut off an unrelated
+    // entrance/exit fade animating the same container, freezing it at
+    // whatever partial alpha it had reached.
+    let hoverTween: Phaser.Tweens.Tween | null = null;
+
     hitArea.on("pointerover", () => {
-        scene.tweens.killTweensOf(container);
-        scene.tweens.add({
+        hoverTween?.stop();
+        hoverTween = scene.tweens.add({
             targets: container,
             scaleX: 1.05,
             scaleY: 1.05,
@@ -148,8 +154,8 @@ export function createBackButton(scene: Scene, x: number, y: number, onBack: () 
         });
     });
     hitArea.on("pointerout", () => {
-        scene.tweens.killTweensOf(container);
-        scene.tweens.add({
+        hoverTween?.stop();
+        hoverTween = scene.tweens.add({
             targets: container,
             scaleX: 1,
             scaleY: 1,

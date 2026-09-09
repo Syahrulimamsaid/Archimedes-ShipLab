@@ -1,5 +1,10 @@
 import { GameObjects, Scene } from "phaser";
 
+/** Entrance animation variety for the menu grid — each card in the row can
+ * use a different one so the whole grid doesn't animate in as one uniform
+ * block. */
+export type CardIntroStyle = "slideUp" | "slideDown" | "bounce";
+
 export interface MenuCardConfig {
     texture: string;
     onSelect: () => void;
@@ -12,6 +17,11 @@ export class MenuCard {
     private lockOverlay: GameObjects.Graphics;
     private lockIcon: GameObjects.Graphics;
     private locked: boolean;
+    // Stopped (not killTweensOf(this.card)) on the next hover — killing
+    // *every* tween on the card would also cut off an unrelated
+    // entrance/exit fade animating the same card, freezing it at whatever
+    // partial alpha it had reached.
+    private hoverTween: Phaser.Tweens.Tween | null = null;
 
     constructor(scene: Scene, config: MenuCardConfig) {
         this.scene = scene;
@@ -68,24 +78,36 @@ export class MenuCard {
         this.drawLockState(x, y, width, height);
     }
 
-    playIntroAnimation(delay: number) {
+    playIntroAnimation(delay: number, style: CardIntroStyle = "slideUp") {
+        const baseX = this.card.x;
         const baseY = this.card.getData("baseY") as number;
         const baseWidth = this.card.getData("baseWidth") as number;
         const baseHeight = this.card.getData("baseHeight") as number;
 
+        let offsetY = 40;
+        let ease = "Back.Out";
+        let duration = 500;
+        if (style === "slideDown") {
+            offsetY = -40;
+        } else if (style === "bounce") {
+            offsetY = -70;
+            ease = "Bounce.Out";
+            duration = 700;
+        }
+
         this.card.setAlpha(0);
         this.lockOverlay.setAlpha(0);
         this.lockIcon.setAlpha(0);
-        this.card.setY(baseY + 18);
+        this.card.setPosition(baseX, baseY + offsetY);
         this.card.setDisplaySize(baseWidth * 0.96, baseHeight * 0.96);
         this.drawLockState(this.card.x, this.card.y, this.card.displayWidth, this.card.displayHeight);
 
         this.scene.tweens.add({
             targets: [this.card, this.lockOverlay, this.lockIcon],
             alpha: 1,
-            duration: 500,
+            duration: 400,
             delay,
-            ease: "Back.Out",
+            ease: "Quad.Out",
         });
 
         this.scene.tweens.add({
@@ -93,13 +115,39 @@ export class MenuCard {
             y: baseY,
             displayWidth: baseWidth,
             displayHeight: baseHeight,
-            duration: 500,
+            duration,
             delay,
-            ease: "Back.Out",
+            ease,
             onUpdate: () => {
                 this.drawLockState(this.card.x, this.card.y, this.card.displayWidth, this.card.displayHeight);
             },
         });
+    }
+
+    /** The reverse of playIntroAnimation — used when navigating away from
+     * MainMenu so the grid doesn't just vanish. Returns the total duration
+     * (delay + tween length) so the caller can wait for it before actually
+     * switching scenes. */
+    playExitAnimation(delay: number): number {
+        const baseY = this.card.y;
+        const duration = 280;
+
+        this.scene.tweens.add({
+            targets: [this.card, this.lockOverlay, this.lockIcon],
+            alpha: 0,
+            duration,
+            delay,
+            ease: "Quad.In",
+        });
+        this.scene.tweens.add({
+            targets: this.card,
+            y: baseY + 30,
+            duration,
+            delay,
+            ease: "Quad.In",
+        });
+
+        return delay + duration;
     }
 
     private drawLockState(x: number, y: number, width: number, height: number) {
@@ -141,8 +189,8 @@ export class MenuCard {
         const baseWidth = this.card.getData("baseWidth") as number;
         const baseHeight = this.card.getData("baseHeight") as number;
 
-        this.scene.tweens.killTweensOf(this.card);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.card,
             displayWidth: baseWidth * 1.06,
             displayHeight: baseHeight * 1.06,
@@ -160,8 +208,8 @@ export class MenuCard {
         const baseWidth = this.card.getData("baseWidth") as number;
         const baseHeight = this.card.getData("baseHeight") as number;
 
-        this.scene.tweens.killTweensOf(this.card);
-        this.scene.tweens.add({
+        this.hoverTween?.stop();
+        this.hoverTween = this.scene.tweens.add({
             targets: this.card,
             displayWidth: baseWidth,
             displayHeight: baseHeight,

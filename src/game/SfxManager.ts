@@ -4,6 +4,7 @@ export const SFX_KEYS = {
     click: "sfx.menuClick",
     quizWrong: "sfx.quizWrong",
     quizCorrect: "sfx.quizCorrect",
+    greeting: "bgm.dubbing_greeting",
 } as const;
 
 /** Plays a one-shot sound effect by key. Scene.sound is a shared reference

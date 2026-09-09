@@ -1,6 +1,6 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
+import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
@@ -29,6 +29,7 @@ export class AnatomiStruktur extends Scene {
     private quizPrompt!: QuizPromptCard;
     private diagramViewer!: InteractiveShipStructureViewer;
     private viewedKeys = new Set<string>();
+    private transitionGroups: GameObjects.GameObject[][] = [];
 
     constructor() {
         super("AnatomiStruktur");
@@ -38,14 +39,16 @@ export class AnatomiStruktur extends Scene {
         this.background = this.add.image(0, 0, "AnatomiStructure.background");
         this.root = this.add.container(0, 0);
 
-        this.buildHeader();
-        this.buildDiagramCard();
-        this.buildFooterCard();
-        this.buildRightColumn();
+        const groups: GameObjects.GameObject[][] = [];
+        trackGroup(this.root, groups, () => this.buildHeader());
+        trackGroup(this.root, groups, () => this.buildDiagramCard());
+        trackGroup(this.root, groups, () => this.buildFooterCard());
+        trackGroup(this.root, groups, () => this.buildRightColumn());
+        this.transitionGroups = groups;
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, this.root);
+        playSceneEnter(this, groups);
 
         EventBus.emit("current-scene-ready", this);
 
@@ -59,7 +62,7 @@ export class AnatomiStruktur extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.root, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
     // ---- Header: back button + breadcrumb + heading --------------------

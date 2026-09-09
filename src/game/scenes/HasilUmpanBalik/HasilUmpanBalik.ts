@@ -2,7 +2,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
+import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { FINAL_EVALUATION_QUIZ } from "./FinalQuizData";
@@ -27,6 +27,7 @@ const HEADER_HEIGHT = 64;
 export class HasilUmpanBalik extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
+    private transitionGroups: GameObjects.GameObject[][] = [];
 
     constructor() {
         super("HasilUmpanBalik");
@@ -36,12 +37,14 @@ export class HasilUmpanBalik extends Scene {
         this.background = this.add.image(0, 0, "AnatomiStructure.background");
         this.root = this.add.container(0, 0);
 
-        this.buildHeader();
-        this.buildContent();
+        const groups: GameObjects.GameObject[][] = [];
+        trackGroup(this.root, groups, () => this.buildHeader());
+        trackGroup(this.root, groups, () => this.buildContent());
+        this.transitionGroups = groups;
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, this.root);
+        playSceneEnter(this, groups);
 
         EventBus.emit("current-scene-ready", this);
 
@@ -55,7 +58,7 @@ export class HasilUmpanBalik extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.root, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
     private buildHeader() {
@@ -133,7 +136,7 @@ export class HasilUmpanBalik extends Scene {
     /** Launches the cumulative 10-question evaluation quiz covering every
      * module — see FinalQuizData.ts. */
     private startFinalQuiz() {
-        playSceneExit(this, this.root, () =>
+        playSceneExit(this, this.transitionGroups, () =>
             this.scene.start("QuizScene", {
                 config: FINAL_EVALUATION_QUIZ,
                 returnScene: "HasilUmpanBalik",

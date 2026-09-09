@@ -2,7 +2,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 
 import { createBackButton } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
+import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
@@ -24,6 +24,7 @@ const CARD_HEIGHT = 460;
 export class Tentang extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
+    private transitionGroups: GameObjects.GameObject[][] = [];
 
     constructor() {
         super("Tentang");
@@ -33,12 +34,14 @@ export class Tentang extends Scene {
         this.background = this.add.image(0, 0, "AnatomiStructure.background");
         this.root = this.add.container(0, 0);
 
-        this.buildTopBar();
-        this.buildContentCard();
+        const groups: GameObjects.GameObject[][] = [];
+        trackGroup(this.root, groups, () => this.buildTopBar());
+        trackGroup(this.root, groups, () => this.buildContentCard());
+        this.transitionGroups = groups;
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, this.root);
+        playSceneEnter(this, groups);
 
         EventBus.emit("current-scene-ready", this);
 
@@ -52,7 +55,7 @@ export class Tentang extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.root, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
     // ---- Title + back button --------------------------------------------------

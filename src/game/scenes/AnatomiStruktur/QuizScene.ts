@@ -8,7 +8,7 @@ import {
     PRIMARY_BLUE_HEX,
     createHeaderBarCard,
 } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit } from "../../../component/SceneTransition";
+import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { BadgeId, unlockBadge } from "../../BadgeState";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
@@ -92,6 +92,7 @@ export class QuizScene extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
     private bodyContainer!: GameObjects.Container;
+    private transitionGroups: GameObjects.GameObject[][] = [];
 
     private quizData!: QuizSceneData;
     private questionIndex = 0;
@@ -115,25 +116,34 @@ export class QuizScene extends Scene {
         this.background = this.add.image(0, 0, "AnatomiStructure.background");
         this.root = this.add.container(0, 0);
 
-        const chrome = createHeaderBarCard(
-            this,
-            CARD_X,
-            CARD_Y,
-            CARD_WIDTH,
-            CARD_HEIGHT,
-            this.quizData.config.title,
-            HEADER_HEIGHT,
-        );
-        this.root.add(chrome);
+        const groups: GameObjects.GameObject[][] = [];
+        trackGroup(this.root, groups, () => {
+            const chrome = createHeaderBarCard(
+                this,
+                CARD_X,
+                CARD_Y,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                this.quizData.config.title,
+                HEADER_HEIGHT,
+            );
+            this.root.add(chrome);
+        });
 
         this.bodyContainer = this.add.container(0, 0);
         this.root.add(this.bodyContainer);
+        // One group wrapping the container itself (not its contents) — its
+        // children change over time (countdown, then each question, then
+        // the result screen), but whatever's inside animates in/out
+        // together automatically since it's all riding on this one object.
+        groups.push([this.bodyContainer]);
+        this.transitionGroups = groups;
 
         this.playCountdown(() => this.renderQuestion());
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, this.root);
+        playSceneEnter(this, groups);
         startQuizBgm(this);
 
         EventBus.emit("current-scene-ready", this);
@@ -149,7 +159,7 @@ export class QuizScene extends Scene {
     }
 
     private returnToModule() {
-        playSceneExit(this, this.root, () => this.scene.start(this.quizData.returnScene));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(this.quizData.returnScene));
     }
 
     /** A 3-2-1 countdown shown once, right when the quiz starts, before the
