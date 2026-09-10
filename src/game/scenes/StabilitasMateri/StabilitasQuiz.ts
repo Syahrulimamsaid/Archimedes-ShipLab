@@ -8,7 +8,7 @@ import { createStepDots } from "../../../component/StepDots/StepDots";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { shuffleQuestions } from "../../QuizShuffle";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { NILAI_BAIK_THRESHOLD, SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { getStabilityModuleProgress, setQuizResult } from "../../StabilityModuleState";
 import { STABILITAS_QUIZ_QUESTIONS } from "./StabilitasQuizData";
 
@@ -355,6 +355,7 @@ export class StabilitasQuiz extends Scene {
         const correctCount = this.correctFlags.filter(Boolean).length;
         const score = correctCount * 20;
         setQuizResult(correctCount, [...this.correctFlags]);
+        playVoiceSfx(this, score >= NILAI_BAIK_THRESHOLD ? SFX_KEYS.nilaiBaik : SFX_KEYS.nilaiKurang);
 
         const centerX = CARD_X + CARD_WIDTH / 2;
         const scoreText = this.add

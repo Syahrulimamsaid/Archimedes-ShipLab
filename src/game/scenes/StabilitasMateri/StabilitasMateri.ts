@@ -6,7 +6,7 @@ import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } fro
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { createStepDots } from "../../../component/StepDots/StepDots";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { setMaterialCompleted } from "../../StabilityModuleState";
 import { ShipFrontView } from "../SimulatorStabilitas/ShipFrontView";
 import {
@@ -97,6 +97,7 @@ export class StabilitasMateri extends Scene {
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         playSceneEnter(this, groups);
+        playVoiceSfx(this, SFX_KEYS.keteranganStabilitas);
 
         EventBus.emit("current-scene-ready", this);
 

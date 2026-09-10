@@ -5,7 +5,7 @@ import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { getStabilityModuleProgress } from "../../StabilityModuleState";
 
 const DESIGN_WIDTH = 1536;
@@ -28,6 +28,7 @@ interface ActivityCardConfig {
     statusLabel: string;
     statusColor: string;
     buttonLabel: string;
+    hoverSfxKey: string;
     onStart: () => void;
 }
 
@@ -102,6 +103,7 @@ export class PilihAktivitasStabilitas extends Scene {
             statusLabel: progress.quizCompleted ? `✓ SELESAI · Skor: ${progress.quizScore}` : "BELUM DIKERJAKAN",
             statusColor: progress.quizCompleted ? GREEN_HEX : BODY_TEXT,
             buttonLabel: "MULAI KUIS",
+            hoverSfxKey: SFX_KEYS.menuKuis,
             onStart: () => {
                 playSfx(this, SFX_KEYS.click);
                 this.goTo("StabilitasQuiz");
@@ -117,6 +119,7 @@ export class PilihAktivitasStabilitas extends Scene {
             statusLabel: progress.simulatorCompleted ? `✓ SELESAI · ${progress.simulatorCasesCompleted}/3 Case` : "BELUM DIKERJAKAN",
             statusColor: progress.simulatorCompleted ? GREEN_HEX : BODY_TEXT,
             buttonLabel: "MULAI SIMULATOR",
+            hoverSfxKey: SFX_KEYS.menuSimulator,
             onStart: () => {
                 playSfx(this, SFX_KEYS.click);
                 this.goTo("SimulatorStabilitas");
@@ -183,6 +186,7 @@ export class PilihAktivitasStabilitas extends Scene {
             textColor: "#ffffff",
         });
         button.on("pointerdown", cfg.onStart);
+        button.on("pointerover", () => playVoiceSfx(this, cfg.hoverSfxKey));
 
         this.root.add([icon, title, description, pillBg, pillText, statusText, button.view]);
     }

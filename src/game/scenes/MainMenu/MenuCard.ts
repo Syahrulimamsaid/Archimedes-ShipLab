@@ -8,6 +8,7 @@ export type CardIntroStyle = "slideUp" | "slideDown" | "bounce";
 export interface MenuCardConfig {
     texture: string;
     onSelect: () => void;
+    onHover?: () => void;
     locked?: boolean;
 }
 
@@ -43,6 +44,7 @@ export class MenuCard {
         this.card.on("pointerover", () => {
             if (!this.locked) {
                 this.showPopup();
+                config.onHover?.();
             }
         });
         this.card.on("pointerout", () => {

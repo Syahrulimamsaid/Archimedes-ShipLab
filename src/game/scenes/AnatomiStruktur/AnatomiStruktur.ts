@@ -4,6 +4,7 @@ import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/Sc
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { SceneProgressFooter } from "../../../component/SceneProgressFooter/SceneProgressFooter";
 import { EventBus } from "../../EventBus";
+import { SFX_KEYS, anatomiNarrationKey, playVoiceSfx } from "../../SfxManager";
 import { HULL_COMPONENTS, SOP_DARURAT_QUIZ } from "./HullComponentsData";
 import { InfoWindow } from "./InfoWindow";
 import { QuizPromptCard } from "./QuizPromptCard";
@@ -49,6 +50,7 @@ export class AnatomiStruktur extends Scene {
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         playSceneEnter(this, groups);
+        playVoiceSfx(this, SFX_KEYS.keteranganAnatomi);
 
         EventBus.emit("current-scene-ready", this);
 
@@ -145,6 +147,7 @@ export class AnatomiStruktur extends Scene {
             return;
         }
 
+        playVoiceSfx(this, anatomiNarrationKey(data.number));
         this.infoWindow.show(data);
         this.viewedKeys.add(key);
         this.footer.setProgress(this.viewedKeys.size);

@@ -4,7 +4,7 @@ import { ButtonImage } from "../../../component/Button/ButtonImage";
 import { ExitButton } from "../../../component/Button/ExitButton";
 import { initBgm, isBgmEnabled, toggleBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { isModuleUnlocked, ModuleId } from "../../ModuleProgress";
 import { CharacterPanel } from "./CharacterPanel";
 import { CardIntroStyle, MenuCard } from "./MenuCard";
@@ -78,6 +78,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.anatomi.vertical",
                 locked: !isModuleUnlocked("anatomi-struktur"),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuAnatomi),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("AnatomiStruktur"));
@@ -86,6 +87,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.stabilitas.vertical",
                 locked: !isModuleUnlocked("simulator-stabilitas"),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuSimulator),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("StabilitasMateri"));
@@ -94,6 +96,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.hasil.vertical",
                 locked: !isModuleUnlocked("hasil-umpan-balik"),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuEvaluasi),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("HasilUmpanBalik"));
@@ -112,6 +115,7 @@ export class MainMenu extends Scene {
                 this.exitModal.open();
             },
         });
+        this.exitButton.on("pointerover", () => playVoiceSfx(this, SFX_KEYS.menuKeluar));
 
         this.bgmToggleButton = new BgmToggleButton(this, {
             height: 44,
@@ -138,6 +142,7 @@ export class MainMenu extends Scene {
             playSfx(this, SFX_KEYS.click);
             this.playExitAnimation(() => this.scene.start("Tentang"));
         });
+        this.bottomButtons[0].on("pointerover", () => playVoiceSfx(this, SFX_KEYS.menuTentang));
 
         this.exitModal = new ModalExit(this, () =>
             this.playExitAnimation(() => this.scene.start("Preloader")),

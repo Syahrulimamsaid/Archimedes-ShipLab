@@ -163,7 +163,10 @@ export class Button {
     }
 
     private bindInteractions() {
-        this.hitArea.on("pointerover", () => this.showHover());
+        this.hitArea.on("pointerover", () => {
+            this.showHover();
+            this.container.emit("pointerover");
+        });
         this.hitArea.on("pointerout", () => this.hideHover());
         this.hitArea.on(
             "pointerdown",

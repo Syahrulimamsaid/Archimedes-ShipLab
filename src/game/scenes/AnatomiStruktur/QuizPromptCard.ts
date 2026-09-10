@@ -6,7 +6,7 @@ import {
     PURPLE,
     PURPLE_TEXT,
 } from "../../../component/ModulePanel/ModulePanel";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { QuizConfig } from "./QuizScene";
 
 /**
@@ -65,7 +65,10 @@ export class QuizPromptCard {
             })
             .setOrigin(0.5);
 
-        buttonBg.on("pointerover", () => buttonBg.setFillStyle(0x2558b8, 1));
+        buttonBg.on("pointerover", () => {
+            buttonBg.setFillStyle(0x2558b8, 1);
+            playVoiceSfx(scene, SFX_KEYS.menuKuis);
+        });
         buttonBg.on("pointerout", () => buttonBg.setFillStyle(PRIMARY_BLUE, 1));
         buttonBg.on("pointerdown", () => {
             if (this.activeQuiz) {

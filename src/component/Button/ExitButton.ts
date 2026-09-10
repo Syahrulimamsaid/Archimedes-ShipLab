@@ -43,7 +43,10 @@ export class ExitButton {
         this.container.setData("baseX", config.x ?? 0);
         this.container.setData("baseY", config.y ?? 0);
 
-        this.hitArea.on("pointerover", () => this.showHover());
+        this.hitArea.on("pointerover", () => {
+            this.showHover();
+            this.container.emit("pointerover");
+        });
         this.hitArea.on("pointerout", () => this.hideHover());
         this.hitArea.on(
             "pointerdown",
@@ -63,6 +66,11 @@ export class ExitButton {
 
     get view() {
         return this.container;
+    }
+
+    on(eventName: string, handler: () => void) {
+        this.container.on(eventName, handler);
+        return this;
     }
 
     setPosition(x: number, y: number) {

@@ -118,8 +118,8 @@ export class Tentang extends Scene {
 
         const rows: Array<[string, string]> = [
             ["Judul", "Stabilitas Kapal Niaga dan Rangka Lambung"],
-            ["Pengembang", "Creator (Muhamad Slamet Riyadi, S.Kom, M.Kom), Programmer (Syahrul Imam Said), Desain Asset (Syahrul Imam Said)"],
-            ["Program Keahlian", "Teknik Elektronika / Nautika Kapal Niaga"],
+            ["Pengembang", "Creator (Muhamad Slamet Riyadi, S.Kom, M.Kom), Programmer dan Design Asset (Syahrul Imam Said)"],
+            ["Program Keahlian", "Nautika Kapal Niaga"],
             ["Instansi", "SMK Negeri 2 Kudus"],
         ];
 

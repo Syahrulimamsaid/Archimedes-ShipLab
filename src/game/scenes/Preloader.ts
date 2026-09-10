@@ -87,6 +87,21 @@ export class Preloader extends Scene {
         this.load.audio("sfx.quizWrong", "assets/soundeffect/quiz_wrong.webm");
         this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");
 
+        // Materi narration/hover/result voice lines.
+        this.load.audio("sfx.keterangan.anatomi", "assets/soundeffect/materi/keterangan_anatomi_struktur_kapal.mp3");
+        this.load.audio("sfx.keterangan.stabilitas", "assets/soundeffect/materi/keterangan_stabilitas_kapal.mp3");
+        this.load.audio("sfx.menu.anatomi", "assets/soundeffect/materi/menu_anatomi_struktur_kapal.mp3");
+        this.load.audio("sfx.menu.simulator", "assets/soundeffect/materi/menu_simulator_struktur_kapal.mp3");
+        this.load.audio("sfx.menu.evaluasi", "assets/soundeffect/materi/menu_evaluasi_umpan_balik.mp3");
+        this.load.audio("sfx.menu.tentang", "assets/soundeffect/materi/menu_tentang.mp3");
+        this.load.audio("sfx.menu.keluar", "assets/soundeffect/materi/menu_keluar.mp3");
+        this.load.audio("sfx.menu.kuis", "assets/soundeffect/materi/menu_kuis.mp3");
+        this.load.audio("sfx.nilai.baik", "assets/soundeffect/materi/nilai_baik.mp3");
+        this.load.audio("sfx.nilai.kurang", "assets/soundeffect/materi/nilai_kurang.mp3");
+        for (let i = 1; i <= 9; i++) {
+            this.load.audio(`sfx.anatomi.${i}`, `assets/soundeffect/materi/anatomi_${i}.mp3`);
+        }
+
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(
             "home.card.anatomi",

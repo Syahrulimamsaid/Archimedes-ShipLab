@@ -15,7 +15,7 @@ import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { ModuleId, unlockNextModuleAfter } from "../../ModuleProgress";
 import { shuffleQuestions } from "../../QuizShuffle";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { NILAI_BAIK_THRESHOLD, SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 
 export interface QuizQuestion {
     question: string;
@@ -393,7 +393,10 @@ export class QuizScene extends Scene {
 
         const total = config.questions.length;
         const passed = this.correctCount >= config.passScore;
+        const scoreValue = Math.round((this.correctCount / total) * 100);
         const centerX = CARD_X + CARD_WIDTH / 2;
+
+        playVoiceSfx(this, scoreValue >= NILAI_BAIK_THRESHOLD ? SFX_KEYS.nilaiBaik : SFX_KEYS.nilaiKurang);
 
         // Only a full pass unlocks the next module — getting even one
         // question wrong must not open it (e.g. Simulator Stabilitas stays
@@ -418,7 +421,6 @@ export class QuizScene extends Scene {
         const localGroups: GameObjects.GameObject[][] = [];
         const localStyles: (EnterStyleName | undefined)[] = [];
 
-        const scoreValue = Math.round((this.correctCount / total) * 100);
         trackGroup(this.bodyContainer, localGroups, () => {
             const scoreNumber = this.add
                 .text(centerX, BODY_TOP + 30, `${scoreValue} / 100`, {
