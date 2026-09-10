@@ -1,8 +1,9 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
+import { Button } from "../../../component/Button/Button";
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
+import { EnterStyleName, playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { FINAL_EVALUATION_QUIZ } from "./FinalQuizData";
@@ -28,6 +29,7 @@ export class HasilUmpanBalik extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
     private transitionGroups: GameObjects.GameObject[][] = [];
+    private transitionStyles: (EnterStyleName | undefined)[] = [];
 
     constructor() {
         super("HasilUmpanBalik");
@@ -38,13 +40,23 @@ export class HasilUmpanBalik extends Scene {
         this.root = this.add.container(0, 0);
 
         const groups: GameObjects.GameObject[][] = [];
+        const styles: (EnterStyleName | undefined)[] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
-        trackGroup(this.root, groups, () => this.buildContent());
+        styles.push(undefined);
+        trackGroup(this.root, groups, () => this.buildCardChrome());
+        styles.push(undefined);
+        trackGroup(this.root, groups, () => this.buildIcon());
+        styles.push("bounce");
+        trackGroup(this.root, groups, () => this.buildTitleAndDescription());
+        styles.push(undefined);
+        trackGroup(this.root, groups, () => this.buildStartButton());
+        styles.push("up");
         this.transitionGroups = groups;
+        this.transitionStyles = styles;
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
-        playSceneEnter(this, groups);
+        playSceneEnter(this, groups, styles);
 
         EventBus.emit("current-scene-ready", this);
 
@@ -58,7 +70,7 @@ export class HasilUmpanBalik extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey), this.transitionStyles);
     }
 
     private buildHeader() {
@@ -73,15 +85,22 @@ export class HasilUmpanBalik extends Scene {
         this.root.add(header.view);
     }
 
-    private buildContent() {
+    private buildCardChrome() {
         const chrome = createHeaderBarCard(this, CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, "KUIS EVALUASI AKHIR", HEADER_HEIGHT);
         this.root.add(chrome);
+    }
 
+    private buildIcon() {
+        const centerX = CARD_X + CARD_WIDTH / 2;
+        const bodyTop = CARD_Y + HEADER_HEIGHT + 36;
+        const icon = this.add.text(centerX, bodyTop, "🏁", { fontFamily: "Arial", fontSize: 56 }).setOrigin(0.5, 0);
+        this.root.add(icon);
+    }
+
+    private buildTitleAndDescription() {
         const centerX = CARD_X + CARD_WIDTH / 2;
         const contentWidth = CARD_WIDTH - 140;
         const bodyTop = CARD_Y + HEADER_HEIGHT + 36;
-
-        const icon = this.add.text(centerX, bodyTop, "🏁", { fontFamily: "Arial", fontSize: 56 }).setOrigin(0.5, 0);
 
         const title = this.add
             .text(centerX, bodyTop + 88, "Evaluasi Akhir: Semua Materi", {
@@ -108,40 +127,48 @@ export class HasilUmpanBalik extends Scene {
             )
             .setOrigin(0.5, 0);
 
+        this.root.add([title, description]);
+    }
+
+    private buildStartButton() {
+        const centerX = CARD_X + CARD_WIDTH / 2;
         const buttonWidth = 300;
         const buttonHeight = 56;
         const buttonY = CARD_Y + CARD_HEIGHT - 80;
 
-        const button = this.add
-            .rectangle(centerX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
-            .setInteractive({ useHandCursor: true });
-        const buttonLabel = this.add
-            .text(centerX, buttonY, "🚀 MULAI EVALUASI", {
-                fontFamily: "Arial Black",
-                fontSize: 16,
-                color: "#ffffff",
-            })
-            .setOrigin(0.5);
-
-        button.on("pointerover", () => button.setFillStyle(0x2558b8, 1));
-        button.on("pointerout", () => button.setFillStyle(PRIMARY_BLUE, 1));
+        const button = new Button(this, {
+            x: centerX,
+            y: buttonY,
+            width: buttonWidth,
+            height: buttonHeight,
+            text: "🚀 MULAI EVALUASI",
+            fontSize: 16,
+            borderRadius: 14,
+            fillColor: PRIMARY_BLUE,
+            strokeAlpha: 0,
+            textColor: "#ffffff",
+        });
         button.on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
             this.startFinalQuiz();
         });
 
-        this.root.add([icon, title, description, button, buttonLabel]);
+        this.root.add(button.view);
     }
 
     /** Launches the cumulative 10-question evaluation quiz covering every
      * module — see FinalQuizData.ts. */
     private startFinalQuiz() {
-        playSceneExit(this, this.transitionGroups, () =>
-            this.scene.start("QuizScene", {
-                config: FINAL_EVALUATION_QUIZ,
-                returnScene: "HasilUmpanBalik",
-                moduleId: "hasil-umpan-balik",
-            }),
+        playSceneExit(
+            this,
+            this.transitionGroups,
+            () =>
+                this.scene.start("QuizScene", {
+                    config: FINAL_EVALUATION_QUIZ,
+                    returnScene: "HasilUmpanBalik",
+                    moduleId: "hasil-umpan-balik",
+                }),
+            this.transitionStyles,
         );
     }
 

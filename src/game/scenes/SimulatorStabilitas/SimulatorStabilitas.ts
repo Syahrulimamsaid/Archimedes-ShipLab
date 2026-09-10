@@ -6,6 +6,7 @@ import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/Sc
 import { EventBus } from "../../EventBus";
 import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { setSimulatorProgress } from "../../StabilityModuleState";
 import { createContainerToken } from "./CargoContainerView";
 import { ShipFrontView } from "./ShipFrontView";
 import { StabilityHUD } from "./StabilityHUD";
@@ -115,7 +116,7 @@ export class SimulatorStabilitas extends Scene {
             breadcrumbLabel: "Simulasi Distribusi Beban",
             heading: "SIMULASI STABILITAS KAPAL",
             subtitle: "Atur distribusi muatan agar kapal kembali dalam kondisi stabil.",
-            onBack: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("PilihAktivitasStabilitas"),
         });
         this.root.add(header.view);
     }
@@ -313,7 +314,8 @@ export class SimulatorStabilitas extends Scene {
         if (this.caseNumber < 3) {
             this.startCase((this.caseNumber + 1) as CaseNumber);
         } else {
-            this.goTo("HasilUmpanBalik");
+            setSimulatorProgress(3);
+            this.goTo("StabilitasSimulatorResult");
         }
     }
 

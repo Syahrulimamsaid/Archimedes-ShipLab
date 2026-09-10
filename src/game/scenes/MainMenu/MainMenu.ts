@@ -88,7 +88,7 @@ export class MainMenu extends Scene {
                 locked: !isModuleUnlocked("simulator-stabilitas"),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.playExitAnimation(() => this.scene.start("SimulatorStabilitas"));
+                    this.playExitAnimation(() => this.scene.start("StabilitasMateri"));
                 },
             }),
             new MenuCard(this, {
@@ -410,6 +410,7 @@ export class MainMenu extends Scene {
             cardHeight = maxGridHeight;
             cardWidth = cardHeight / cardAspect;
         }
+        cardHeight += 15;
 
         const cardScale = cardWidth / 460;
         const cardsBlockWidth =

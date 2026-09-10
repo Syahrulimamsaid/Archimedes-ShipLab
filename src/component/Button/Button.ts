@@ -23,6 +23,13 @@ export interface ButtonConfig {
     hoverOffsetY?: number;
     hoverDuration?: number;
     hoverEase?: string;
+    /** When true, the button renders but has no hit area, hover animation,
+     * or click handling — used for a visually-muted disabled state (e.g. a
+     * "previous" button on the first step). Defaults to false. */
+    disabled?: boolean;
+    /** Wraps the label to this width (centered, multi-line) instead of the
+     * default single-line label — for buttons with longer text. */
+    wordWrapWidth?: number;
 }
 
 export class Button {
@@ -61,19 +68,23 @@ export class Button {
             hoverOffsetY: config.hoverOffsetY ?? 4,
             hoverDuration: config.hoverDuration ?? 140,
             hoverEase: config.hoverEase ?? "Back.Out",
+            disabled: config.disabled ?? false,
+            wordWrapWidth: config.wordWrapWidth ?? 0,
         };
 
         this.background = scene.add.graphics();
-        this.hitArea = scene.add
-            .rectangle(0, 0, this.config.width, this.config.height, 0xffffff, 0)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
+        this.hitArea = scene.add.rectangle(0, 0, this.config.width, this.config.height, 0xffffff, 0).setOrigin(0.5);
+        if (!this.config.disabled) {
+            this.hitArea.setInteractive({ useHandCursor: true });
+        }
         this.label = scene.add
             .text(0, 0, this.config.text, {
                 fontFamily: this.config.fontFamily,
                 fontSize: this.config.fontSize,
                 fontStyle: this.config.fontStyle,
                 color: this.config.textColor,
+                align: "center",
+                wordWrap: this.config.wordWrapWidth > 0 ? { width: this.config.wordWrapWidth } : undefined,
             })
             .setOrigin(0.5);
 
@@ -90,7 +101,9 @@ export class Button {
         this.container.setData("baseScaleY", 1);
 
         this.draw();
-        this.bindInteractions();
+        if (!this.config.disabled) {
+            this.bindInteractions();
+        }
     }
 
     get view() {

@@ -7,6 +7,10 @@ import { HasilUmpanBalik } from "./scenes/HasilUmpanBalik/HasilUmpanBalik";
 import { MainMenu } from "./scenes/MainMenu/MainMenu";
 import { AUTO, Game, Scale } from "phaser";
 import { Preloader } from "./scenes/Preloader";
+import { PilihAktivitasStabilitas } from "./scenes/StabilitasMateri/PilihAktivitasStabilitas";
+import { StabilitasMateri } from "./scenes/StabilitasMateri/StabilitasMateri";
+import { StabilitasQuiz } from "./scenes/StabilitasMateri/StabilitasQuiz";
+import { StabilitasSimulatorResult } from "./scenes/StabilitasMateri/StabilitasSimulatorResult";
 import { SimulatorStabilitas } from "./scenes/SimulatorStabilitas/SimulatorStabilitas";
 import { Tentang } from "./scenes/Tentang/Tentang";
 
@@ -32,7 +36,11 @@ const config: Phaser.Types.Core.GameConfig = {
         MainMenu,
         AnatomiStruktur,
         QuizScene,
+        StabilitasMateri,
+        PilihAktivitasStabilitas,
+        StabilitasQuiz,
         SimulatorStabilitas,
+        StabilitasSimulatorResult,
         HasilUmpanBalik,
         Tentang,
         MainGame,

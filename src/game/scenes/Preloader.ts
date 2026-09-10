@@ -82,7 +82,7 @@ export class Preloader extends Scene {
         this.load.image("character", "assets/character.png");
         this.load.audio("bgm.main", "assets/bgm/bluelike_u-7-wizard-cute-bgm-274665.mp3");
         this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
-        this.load.audio("bgm.dubbing_greeting", "assets/bgm/dubbing_greeting.ogg");
+        this.load.audio("bgm.dubbing_greeting", "assets/soundeffect/dashboard_archilab.mp3");
         this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
         this.load.audio("sfx.quizWrong", "assets/soundeffect/quiz_wrong.webm");
         this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");

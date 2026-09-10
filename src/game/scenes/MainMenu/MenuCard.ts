@@ -162,7 +162,7 @@ export class MenuCard {
         const top = y - height / 2;
         const overlayRadius = 45;
 
-        this.lockOverlay.fillStyle(0x000000, 0.2);
+        this.lockOverlay.fillStyle(0x000000, 0.3);
         this.lockOverlay.fillRoundedRect(left, top, width, height, overlayRadius);
 
         const iconCenterX = x;
@@ -175,7 +175,7 @@ export class MenuCard {
         const shackleRadius = bodyWidth * 0.32;
         const shackleCenterY = bodyTop - bodyHeight * 0.12;
 
-        this.lockIcon.lineStyle(Math.max(3, iconScale * 0.012), 0xffffff, 0.92);
+        this.lockIcon.lineStyle(Math.max(5, iconScale * 0.022), 0xffffff, 0.92);
         this.lockIcon.strokeRoundedRect(bodyLeft, bodyTop, bodyWidth, bodyHeight, bodyWidth * 0.12);
         this.lockIcon.beginPath();
         this.lockIcon.arc(iconCenterX, shackleCenterY, shackleRadius, Math.PI, 0, false);

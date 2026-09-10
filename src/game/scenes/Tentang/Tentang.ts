@@ -11,10 +11,7 @@ const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 1060;
 const MARGIN = 40;
 
-const CARD_X = MARGIN;
-const CARD_Y = 140;
-const CARD_WIDTH = DESIGN_WIDTH - MARGIN * 2;
-const CARD_HEIGHT = 460;
+const CARD_WIDTH = 1000;
 
 /**
  * A single-panel "Tentang" (about) info page — developer profile, asset
@@ -77,46 +74,60 @@ export class Tentang extends Scene {
     // ---- Content card -----------------------------------------------------------
 
     private buildContentCard() {
-        const card = this.add.graphics();
-        card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
-        card.lineStyle(2, PRIMARY_BLUE, 0.9);
-        card.strokeRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
-        this.root.add(card);
-
         const paddingX = 36;
         const paddingY = 32;
-        const textX = CARD_X + paddingX;
         const textWidth = CARD_WIDTH - paddingX * 2;
 
-        let cursorY = CARD_Y + paddingY;
-        cursorY += this.buildProfilPengembang(textX, cursorY, textWidth) + 28;
-        cursorY += this.buildLabeledParagraph(textX, cursorY, textWidth, "Aset gambar", "Ilustrasi, karakter, dan ikon dibuat dengan bantuan ChatGPT (OpenAI).") + 28;
-        cursorY += this.buildLabeledParagraph(textX, cursorY, textWidth, "Music", "Pixabay — pixabay.com (Free License)") + 28;
-        this.buildDaftarPustaka(textX, cursorY, textWidth);
+        const cardContainer = this.add.container(0, 0);
+
+        let cursorY = paddingY;
+        cursorY += this.buildProfilPengembang(paddingX, cursorY, textWidth, cardContainer) + 28;
+        cursorY +=
+            this.buildLabeledParagraph(
+                paddingX,
+                cursorY,
+                textWidth,
+                "Aset gambar",
+                "Ilustrasi, karakter, dan ikon dibuat dengan bantuan ChatGPT (OpenAI).",
+                cardContainer,
+            ) + 28;
+        cursorY += this.buildLabeledParagraph(paddingX, cursorY, textWidth, "Music", "Pixabay — pixabay.com (Free License)", cardContainer) + 28;
+        cursorY += this.buildDaftarPustaka(paddingX, cursorY, textWidth, cardContainer);
+        cursorY += paddingY;
+
+        const cardHeight = cursorY;
+
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 1);
+        card.fillRoundedRect(0, 0, CARD_WIDTH, cardHeight, 20);
+        card.lineStyle(2, PRIMARY_BLUE, 0.9);
+        card.strokeRoundedRect(0, 0, CARD_WIDTH, cardHeight, 20);
+        cardContainer.addAt(card, 0);
+
+        cardContainer.setPosition((DESIGN_WIDTH - CARD_WIDTH) / 2, (DESIGN_HEIGHT - cardHeight) / 2);
+        this.root.add(cardContainer);
     }
 
-    private buildProfilPengembang(x: number, y: number, width: number): number {
+    private buildProfilPengembang(x: number, y: number, width: number, container: GameObjects.Container): number {
         const header = this.add.text(x, y, "Profil Pengembang :", {
             fontFamily: "Arial Black",
             fontSize: 17,
             color: PRIMARY_BLUE_HEX,
         });
+        container.add(header);
 
         const rows: Array<[string, string]> = [
-            ["Nama", "Sayembara Digital SMK"],
-            ["Mata Pelajaran", "Nautika Kapal Niaga"],
-            ["Instansi", "Sayembara Digital SMK"],
-            ["Surel", "-"],
-            ["Tahun Pembuatan", "2026"],
+            ["Judul", "Stabilitas Kapal Niaga dan Rangka Lambung"],
+            ["Pengembang", "Creator (Muhamad Slamet Riyadi, S.Kom, M.Kom), Programmer (Syahrul Imam Said), Desain Asset (Syahrul Imam Said)"],
+            ["Program Keahlian", "Teknik Elektronika / Nautika Kapal Niaga"],
+            ["Instansi", "SMK Negeri 2 Kudus"],
         ];
 
-        const rowHeight = 26;
-        const rowsTop = y + header.height + 12;
         const labelWidth = 170;
+        const rowGap = 10;
+        let rowY = y + header.height + 12;
 
-        rows.forEach(([label, value], index) => {
-            const rowY = rowsTop + index * rowHeight;
+        rows.forEach(([label, value]) => {
             const labelText = this.add.text(x, rowY, label, {
                 fontFamily: "Arial Black",
                 fontSize: 14,
@@ -131,16 +142,17 @@ export class Tentang extends Scene {
                 fontFamily: "Arial",
                 fontSize: 14,
                 color: BODY_TEXT,
+                lineSpacing: 4,
                 wordWrap: { width: width - labelWidth - 16 },
             });
-            this.root.add([labelText, colonText, valueText]);
+            container.add([labelText, colonText, valueText]);
+            rowY += Math.max(labelText.height, valueText.height) + rowGap;
         });
 
-        this.root.add(header);
-        return header.height + 12 + rows.length * rowHeight;
+        return rowY - rowGap - y;
     }
 
-    private buildLabeledParagraph(x: number, y: number, width: number, label: string, body: string): number {
+    private buildLabeledParagraph(x: number, y: number, width: number, label: string, body: string, container: GameObjects.Container): number {
         const header = this.add.text(x, y, `${label} :`, {
             fontFamily: "Arial Black",
             fontSize: 17,
@@ -155,11 +167,11 @@ export class Tentang extends Scene {
             wordWrap: { width },
         });
 
-        this.root.add([header, bodyText]);
+        container.add([header, bodyText]);
         return header.height + 10 + bodyText.height;
     }
 
-    private buildDaftarPustaka(x: number, y: number, width: number) {
+    private buildDaftarPustaka(x: number, y: number, width: number, container: GameObjects.Container): number {
         const header = this.add.text(x, y, "Daftar Pustaka", {
             fontFamily: "Arial Black",
             fontSize: 17,
@@ -179,7 +191,8 @@ export class Tentang extends Scene {
             },
         );
 
-        this.root.add([header, bodyText]);
+        container.add([header, bodyText]);
+        return header.height + 10 + bodyText.height;
     }
 
     // ---- Layout -------------------------------------------------------------

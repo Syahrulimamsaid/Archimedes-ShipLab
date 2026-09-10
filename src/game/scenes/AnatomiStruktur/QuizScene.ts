@@ -1,5 +1,6 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
+import { Button } from "../../../component/Button/Button";
 import {
     BODY_TEXT,
     BORDER_BLUE,
@@ -8,11 +9,12 @@ import {
     PRIMARY_BLUE_HEX,
     createHeaderBarCard,
 } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
+import { EnterStyleName, playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { BadgeId, unlockBadge } from "../../BadgeState";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { ModuleId, unlockNextModuleAfter } from "../../ModuleProgress";
+import { shuffleQuestions } from "../../QuizShuffle";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 export interface QuizQuestion {
@@ -42,31 +44,12 @@ export interface QuizSceneData {
     moduleId?: ModuleId;
 }
 
-function shuffled<T>(items: T[]): T[] {
-    const copy = [...items];
-    for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-}
-
 /** Randomizes both question order and each question's option order (so the
  * correct answer isn't always e.g. option A) — a fresh shuffle every time a
  * quiz starts, so memorizing "the 2nd question" or "the 1st option" never
  * pays off across attempts. */
 function shuffleQuizConfig(config: QuizConfig): QuizConfig {
-    return {
-        ...config,
-        questions: shuffled(config.questions).map((question) => {
-            const optionOrder = shuffled(question.options.map((_, index) => index));
-            return {
-                question: question.question,
-                options: optionOrder.map((originalIndex) => question.options[originalIndex]),
-                correctIndex: optionOrder.indexOf(question.correctIndex),
-            };
-        }),
-    };
+    return { ...config, questions: shuffleQuestions(config.questions) };
 }
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
@@ -214,102 +197,116 @@ export class QuizScene extends Scene {
         showNumber();
     }
 
-    private renderQuestion() {
+    /** `animate=false` for the instant same-question recolor when an answer
+     * is picked (no entrance tween, just an immediate rebuild) — the
+     * component entrance animation is reserved for actually arriving on a
+     * question (first load or advancing from the previous one). */
+    private renderQuestion(animate = true) {
         const config = this.quizData.config;
         this.bodyContainer.removeAll(true);
 
         const total = config.questions.length;
         const question = config.questions[this.questionIndex];
 
-        const progress = this.add.text(
-            CONTENT_X,
-            BODY_TOP + 28,
-            `SOAL ${this.questionIndex + 1} DARI ${total}`,
-            {
+        const localGroups: GameObjects.GameObject[][] = [];
+        const localStyles: (EnterStyleName | undefined)[] = [];
+
+        let questionText!: GameObjects.Text;
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const progress = this.add.text(
+                CONTENT_X,
+                BODY_TOP + 28,
+                `SOAL ${this.questionIndex + 1} DARI ${total}`,
+                {
+                    fontFamily: "Arial Black",
+                    fontSize: 13,
+                    color: PRIMARY_BLUE_HEX,
+                },
+            );
+
+            questionText = this.add.text(CONTENT_X, BODY_TOP + 54, question.question, {
                 fontFamily: "Arial Black",
-                fontSize: 13,
-                color: PRIMARY_BLUE_HEX,
-            },
-        );
+                fontSize: 19,
+                color: DARK_NAVY,
+                wordWrap: { width: CONTENT_WIDTH },
+                lineSpacing: 5,
+            });
 
-        const questionText = this.add.text(CONTENT_X, BODY_TOP + 54, question.question, {
-            fontFamily: "Arial Black",
-            fontSize: 19,
-            color: DARK_NAVY,
-            wordWrap: { width: CONTENT_WIDTH },
-            lineSpacing: 5,
+            this.bodyContainer.add([progress, questionText]);
         });
-
-        this.bodyContainer.add([progress, questionText]);
+        localStyles.push("down");
 
         const optionsTop = BODY_TOP + 54 + questionText.height + 30;
         const rowHeight = 52;
         const gap = 14;
 
-        question.options.forEach((option, index) => {
-            const rowY = optionsTop + index * (rowHeight + gap);
-            const isCorrectRow = index === question.correctIndex;
-            const isPickedRow = index === this.selectedIndex;
+        trackGroup(this.bodyContainer, localGroups, () => {
+            question.options.forEach((option, index) => {
+                const rowY = optionsTop + index * (rowHeight + gap);
+                const isCorrectRow = index === question.correctIndex;
+                const isPickedRow = index === this.selectedIndex;
 
-            // Feedback is immediate: once answered, the correct option is
-            // always shown green, and a wrong pick is shown red right next
-            // to it — no need to wait for a "confirm" step to find out.
-            let fillColor = 0xffffff;
-            let borderColor = BORDER_BLUE;
-            let accentColor = PRIMARY_BLUE;
-            if (this.answered && isCorrectRow) {
-                fillColor = 0xe3f7ec;
-                borderColor = 0x1f8d52;
-                accentColor = 0x1f8d52;
-            } else if (this.answered && isPickedRow) {
-                fillColor = 0xfceaea;
-                borderColor = 0xc0392b;
-                accentColor = 0xc0392b;
-            }
+                // Feedback is immediate: once answered, the correct option is
+                // always shown green, and a wrong pick is shown red right next
+                // to it — no need to wait for a "confirm" step to find out.
+                let fillColor = 0xffffff;
+                let borderColor = BORDER_BLUE;
+                let accentColor = PRIMARY_BLUE;
+                if (this.answered && isCorrectRow) {
+                    fillColor = 0xe3f7ec;
+                    borderColor = 0x1f8d52;
+                    accentColor = 0x1f8d52;
+                } else if (this.answered && isPickedRow) {
+                    fillColor = 0xfceaea;
+                    borderColor = 0xc0392b;
+                    accentColor = 0xc0392b;
+                }
 
-            const rowBg = this.add
-                .rectangle(CONTENT_X, rowY, CONTENT_WIDTH, rowHeight, fillColor, 1)
-                .setOrigin(0, 0)
-                .setStrokeStyle(2, borderColor, 1);
+                const rowBg = this.add
+                    .rectangle(CONTENT_X, rowY, CONTENT_WIDTH, rowHeight, fillColor, 1)
+                    .setOrigin(0, 0)
+                    .setStrokeStyle(2, borderColor, 1);
 
-            const letterBg = this.add
-                .circle(CONTENT_X + 30, rowY + rowHeight / 2, 16, accentColor, this.answered && (isCorrectRow || isPickedRow) ? 1 : 0.1)
-                .setStrokeStyle(1.5, accentColor, 1);
+                const letterBg = this.add
+                    .circle(CONTENT_X + 30, rowY + rowHeight / 2, 16, accentColor, this.answered && (isCorrectRow || isPickedRow) ? 1 : 0.1)
+                    .setStrokeStyle(1.5, accentColor, 1);
 
-            const letterText = this.add
-                .text(CONTENT_X + 30, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
-                    fontFamily: "Arial Black",
-                    fontSize: 14,
-                    color: this.answered && (isCorrectRow || isPickedRow) ? "#ffffff" : PRIMARY_BLUE_HEX,
-                })
-                .setOrigin(0.5);
+                const letterText = this.add
+                    .text(CONTENT_X + 30, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
+                        fontFamily: "Arial Black",
+                        fontSize: 14,
+                        color: this.answered && (isCorrectRow || isPickedRow) ? "#ffffff" : PRIMARY_BLUE_HEX,
+                    })
+                    .setOrigin(0.5);
 
-            const optionText = this.add
-                .text(CONTENT_X + 60, rowY + rowHeight / 2, option, {
-                    fontFamily: "Arial",
-                    fontSize: 15,
-                    color: DARK_NAVY,
-                    wordWrap: { width: CONTENT_WIDTH - 80 },
-                })
-                .setOrigin(0, 0.5);
+                const optionText = this.add
+                    .text(CONTENT_X + 60, rowY + rowHeight / 2, option, {
+                        fontFamily: "Arial",
+                        fontSize: 15,
+                        color: DARK_NAVY,
+                        wordWrap: { width: CONTENT_WIDTH - 80 },
+                    })
+                    .setOrigin(0, 0.5);
 
-            if (!this.answered) {
-                rowBg.setInteractive({ useHandCursor: true });
-                rowBg.on("pointerdown", () => {
-                    this.selectedIndex = index;
-                    this.answered = true;
-                    if (index === question.correctIndex) {
-                        this.correctCount += 1;
-                        playSfx(this, SFX_KEYS.quizCorrect);
-                    } else {
-                        playSfx(this, SFX_KEYS.quizWrong);
-                    }
-                    this.renderQuestion();
-                });
-            }
+                if (!this.answered) {
+                    rowBg.setInteractive({ useHandCursor: true });
+                    rowBg.on("pointerdown", () => {
+                        this.selectedIndex = index;
+                        this.answered = true;
+                        if (index === question.correctIndex) {
+                            this.correctCount += 1;
+                            playSfx(this, SFX_KEYS.quizCorrect);
+                        } else {
+                            playSfx(this, SFX_KEYS.quizWrong);
+                        }
+                        this.renderQuestion(false);
+                    });
+                }
 
-            this.bodyContainer.add([rowBg, letterBg, letterText, optionText]);
+                this.bodyContainer.add([rowBg, letterBg, letterText, optionText]);
+            });
         });
+        localStyles.push("up");
 
         const isLast = this.questionIndex === total - 1;
         const buttonWidth = 160;
@@ -322,21 +319,53 @@ export class QuizScene extends Scene {
         const buttonY = optionsBottom + 28;
         const isEnabled = this.answered;
 
-        const nextButton = this.add
-            .rectangle(buttonX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, isEnabled ? 1 : 0.4)
-            .setOrigin(0, 0)
-            .setInteractive({ useHandCursor: isEnabled });
-        const nextLabel = this.add
-            .text(buttonX + buttonWidth / 2, buttonY + buttonHeight / 2, isLast ? "Selesai" : "Berikutnya", {
-                fontFamily: "Arial Black",
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const nextButton = new Button(this, {
+                x: buttonX + buttonWidth / 2,
+                y: buttonY + buttonHeight / 2,
+                width: buttonWidth,
+                height: buttonHeight,
+                text: isLast ? "Selesai" : "Berikutnya",
                 fontSize: 15,
-                color: "#ffffff",
-            })
-            .setOrigin(0.5);
+                borderRadius: 12,
+                disabled: !isEnabled,
+                fillColor: isEnabled ? PRIMARY_BLUE : 0xe2e8f0,
+                strokeAlpha: 0,
+                textColor: isEnabled ? "#ffffff" : "#94a3b8",
+            });
+            nextButton.on("pointerdown", () => this.confirmAnswer());
 
-        nextButton.on("pointerdown", () => this.confirmAnswer());
+            this.bodyContainer.add(nextButton.view);
+        });
+        localStyles.push("right");
 
-        this.bodyContainer.add([nextButton, nextLabel]);
+        if (animate) {
+            playSceneEnter(this, localGroups, localStyles);
+        }
+    }
+
+    /** Fades + slides the current bodyContainer content out before handing
+     * off to `build` (a new question or the result screen) — used only for
+     * genuine page-to-page moves, not the instant recolor when an answer is
+     * picked, which stays snappy. */
+    private transitionBody(build: () => void) {
+        const outgoing = [...this.bodyContainer.list] as GameObjects.GameObject[];
+        if (outgoing.length === 0) {
+            build();
+            return;
+        }
+
+        this.tweens.add({
+            targets: outgoing,
+            alpha: 0,
+            y: "+=18",
+            duration: 160,
+            ease: "Quad.In",
+            onComplete: () => {
+                this.bodyContainer.removeAll(true);
+                build();
+            },
+        });
     }
 
     private confirmAnswer() {
@@ -352,9 +381,9 @@ export class QuizScene extends Scene {
             this.questionIndex += 1;
             this.selectedIndex = null;
             this.answered = false;
-            this.renderQuestion();
+            this.transitionBody(() => this.renderQuestion());
         } else {
-            this.renderResult();
+            this.transitionBody(() => this.renderResult());
         }
     }
 
@@ -386,115 +415,157 @@ export class QuizScene extends Scene {
             return;
         }
 
-        const icon = this.add
-            .text(centerX, BODY_TOP + 70, passed ? "✅" : "⚠️", {
-                fontFamily: "Arial",
-                fontSize: 48,
-            })
-            .setOrigin(0.5);
+        const localGroups: GameObjects.GameObject[][] = [];
+        const localStyles: (EnterStyleName | undefined)[] = [];
 
-        const title = this.add
-            .text(centerX, BODY_TOP + 138, passed ? "Selamat!" : "Belum Berhasil", {
-                fontFamily: "Arial Black",
-                fontSize: 26,
-                color: passed ? "#1f8d52" : "#c0392b",
-            })
-            .setOrigin(0.5);
-
-        const scoreText = this.add
-            .text(centerX, BODY_TOP + 182, `Anda menjawab ${this.correctCount} dari ${total} soal dengan benar.`, {
-                fontFamily: "Arial",
-                fontSize: 15,
-                color: BODY_TEXT,
-                align: "center",
-                wordWrap: { width: CONTENT_WIDTH },
-            })
-            .setOrigin(0.5, 0);
-
-        this.bodyContainer.add([icon, title, scoreText]);
-
-        const buttonWidth = 220;
-        const buttonHeight = 48;
-        const buttonY = BODY_TOP + 260;
-
-        if (passed) {
-            const badgeLine = this.add
-                .text(centerX, BODY_TOP + 222, `Lencana "${config.badgeName}" berhasil diklaim!`, {
+        const scoreValue = Math.round((this.correctCount / total) * 100);
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const scoreNumber = this.add
+                .text(centerX, BODY_TOP + 30, `${scoreValue} / 100`, {
                     fontFamily: "Arial Black",
-                    fontSize: 15,
+                    fontSize: 32,
                     color: PRIMARY_BLUE_HEX,
+                })
+                .setOrigin(0.5);
+            this.bodyContainer.add(scoreNumber);
+        });
+        localStyles.push("down");
+
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const icon = this.add
+                .text(centerX, BODY_TOP + 90, passed ? "✅" : "⚠️", {
+                    fontFamily: "Arial",
+                    fontSize: 40,
+                })
+                .setOrigin(0.5);
+            this.bodyContainer.add(icon);
+        });
+        localStyles.push("bounce");
+
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const title = this.add
+                .text(centerX, BODY_TOP + 158, passed ? "Selamat!" : "Belum Berhasil", {
+                    fontFamily: "Arial Black",
+                    fontSize: 24,
+                    color: passed ? "#1f8d52" : "#c0392b",
+                })
+                .setOrigin(0.5);
+
+            const scoreText = this.add
+                .text(centerX, BODY_TOP + 198, `Anda menjawab ${this.correctCount} dari ${total} soal dengan benar.`, {
+                    fontFamily: "Arial",
+                    fontSize: 15,
+                    color: BODY_TEXT,
                     align: "center",
                     wordWrap: { width: CONTENT_WIDTH },
                 })
                 .setOrigin(0.5, 0);
-            this.bodyContainer.add(badgeLine);
 
-            const returnBtn = this.add
-                .rectangle(centerX - buttonWidth / 2, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
-                .setOrigin(0, 0)
-                .setInteractive({ useHandCursor: true });
-            const returnLabel = this.add
-                .text(centerX, buttonY + buttonHeight / 2, "Kembali ke Modul", {
-                    fontFamily: "Arial Black",
-                    fontSize: 15,
-                    color: "#ffffff",
-                })
-                .setOrigin(0.5);
-            returnBtn.on("pointerdown", () => this.returnToModule());
-            this.bodyContainer.add([returnBtn, returnLabel]);
-        } else {
-            const hint = this.add
-                .text(
-                    centerX,
-                    BODY_TOP + 222,
-                    `Diperlukan minimal ${config.passScore} dari ${total} jawaban benar untuk klaim lencana.`,
-                    {
-                        fontFamily: "Arial",
-                        fontSize: 14,
-                        color: BODY_TEXT,
+            this.bodyContainer.add([title, scoreText]);
+        });
+        localStyles.push("up");
+
+        const buttonWidth = 220;
+        const buttonHeight = 48;
+        const buttonY = BODY_TOP + 276;
+
+        if (passed) {
+            trackGroup(this.bodyContainer, localGroups, () => {
+                const badgeLine = this.add
+                    .text(centerX, BODY_TOP + 238, `Lencana "${config.badgeName}" berhasil diklaim!`, {
+                        fontFamily: "Arial Black",
+                        fontSize: 15,
+                        color: PRIMARY_BLUE_HEX,
                         align: "center",
                         wordWrap: { width: CONTENT_WIDTH },
-                    },
-                )
-                .setOrigin(0.5, 0);
-            this.bodyContainer.add(hint);
-
-            const gap = 12;
-            const retryBtn = this.add
-                .rectangle(centerX - buttonWidth - gap / 2, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
-                .setOrigin(0, 0)
-                .setInteractive({ useHandCursor: true });
-            const retryLabel = this.add
-                .text(centerX - gap / 2 - buttonWidth / 2, buttonY + buttonHeight / 2, "Coba Lagi", {
-                    fontFamily: "Arial Black",
-                    fontSize: 15,
-                    color: "#ffffff",
-                })
-                .setOrigin(0.5);
-            retryBtn.on("pointerdown", () => {
-                this.questionIndex = 0;
-                this.selectedIndex = null;
-                this.answered = false;
-                this.correctCount = 0;
-                this.renderQuestion();
+                    })
+                    .setOrigin(0.5, 0);
+                this.bodyContainer.add(badgeLine);
             });
+            localStyles.push("left");
 
-            const returnBtn = this.add
-                .rectangle(centerX + gap / 2, buttonY, buttonWidth, buttonHeight, 0xffffff, 1)
-                .setOrigin(0, 0)
-                .setStrokeStyle(2, PRIMARY_BLUE, 1)
-                .setInteractive({ useHandCursor: true });
-            const returnLabel = this.add
-                .text(centerX + gap / 2 + buttonWidth / 2, buttonY + buttonHeight / 2, "Kembali ke Modul", {
-                    fontFamily: "Arial Black",
+            trackGroup(this.bodyContainer, localGroups, () => {
+                const returnButton = new Button(this, {
+                    x: centerX,
+                    y: buttonY + buttonHeight / 2,
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    text: "Kembali ke Modul",
+                    fontSize: 15,
+                    borderRadius: 12,
+                    fillColor: PRIMARY_BLUE,
+                    strokeAlpha: 0,
+                    textColor: "#ffffff",
+                });
+                returnButton.on("pointerdown", () => this.returnToModule());
+                this.bodyContainer.add(returnButton.view);
+            });
+            localStyles.push("right");
+        } else {
+            trackGroup(this.bodyContainer, localGroups, () => {
+                const hint = this.add
+                    .text(
+                        centerX,
+                        BODY_TOP + 238,
+                        `Diperlukan minimal ${config.passScore} dari ${total} jawaban benar untuk klaim lencana.`,
+                        {
+                            fontFamily: "Arial",
+                            fontSize: 14,
+                            color: BODY_TEXT,
+                            align: "center",
+                            wordWrap: { width: CONTENT_WIDTH },
+                        },
+                    )
+                    .setOrigin(0.5, 0);
+                this.bodyContainer.add(hint);
+            });
+            localStyles.push("left");
+
+            trackGroup(this.bodyContainer, localGroups, () => {
+                const gap = 12;
+                const retryButton = new Button(this, {
+                    x: centerX - buttonWidth / 2 - gap / 2,
+                    y: buttonY + buttonHeight / 2,
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    text: "Coba Lagi",
+                    fontSize: 15,
+                    borderRadius: 12,
+                    fillColor: PRIMARY_BLUE,
+                    strokeAlpha: 0,
+                    textColor: "#ffffff",
+                });
+                retryButton.on("pointerdown", () => {
+                    this.transitionBody(() => {
+                        this.questionIndex = 0;
+                        this.selectedIndex = null;
+                        this.answered = false;
+                        this.correctCount = 0;
+                        this.renderQuestion();
+                    });
+                });
+
+                const returnButton = new Button(this, {
+                    x: centerX + buttonWidth / 2 + gap / 2,
+                    y: buttonY + buttonHeight / 2,
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    text: "Kembali ke Modul",
                     fontSize: 14,
-                    color: PRIMARY_BLUE_HEX,
-                })
-                .setOrigin(0.5);
-            returnBtn.on("pointerdown", () => this.returnToModule());
+                    borderRadius: 12,
+                    fillColor: 0xffffff,
+                    strokeColor: PRIMARY_BLUE,
+                    strokeAlpha: 1,
+                    textColor: PRIMARY_BLUE_HEX,
+                });
+                returnButton.on("pointerdown", () => this.returnToModule());
 
-            this.bodyContainer.add([retryBtn, retryLabel, returnBtn, returnLabel]);
+                this.bodyContainer.add([retryButton.view, returnButton.view]);
+            });
+            localStyles.push("right");
         }
+
+        playSceneEnter(this, localGroups, localStyles);
     }
 
     /** The perfect-score result screen for a quiz with perfectScoreMessage
@@ -506,53 +577,70 @@ export class QuizScene extends Scene {
         const centerX = CARD_X + CARD_WIDTH / 2;
         const centerY = BODY_TOP + (CARD_HEIGHT - HEADER_HEIGHT) / 2;
 
-        const icon = this.add
-            .text(centerX, centerY - 150, "🏆", { fontFamily: "Arial", fontSize: 64 })
-            .setOrigin(0.5);
+        const localGroups: GameObjects.GameObject[][] = [];
+        const localStyles: (EnterStyleName | undefined)[] = [];
 
-        const text = this.add
-            .text(centerX, centerY - 60, message, {
-                fontFamily: "Arial Black",
-                fontSize: 22,
-                color: "#1f8d52",
-                align: "center",
-                lineSpacing: 10,
-                wordWrap: { width: CONTENT_WIDTH },
-            })
-            .setOrigin(0.5);
-
-        const badgeLine = this.add
-            .text(centerX, centerY + 30, `Lencana "${config.badgeName}" berhasil diklaim!`, {
-                fontFamily: "Arial Black",
-                fontSize: 15,
-                color: PRIMARY_BLUE_HEX,
-                align: "center",
-                wordWrap: { width: CONTENT_WIDTH },
-            })
-            .setOrigin(0.5);
-
-        const buttonWidth = 240;
-        const buttonHeight = 52;
-        const buttonY = centerY + 110;
-
-        const button = this.add
-            .rectangle(centerX, buttonY, buttonWidth, buttonHeight, PRIMARY_BLUE, 1)
-            .setInteractive({ useHandCursor: true });
-        const buttonLabel = this.add
-            .text(centerX, buttonY, "Selesai", {
-                fontFamily: "Arial Black",
-                fontSize: 16,
-                color: "#ffffff",
-            })
-            .setOrigin(0.5);
-        button.on("pointerover", () => button.setFillStyle(0x2558b8, 1));
-        button.on("pointerout", () => button.setFillStyle(PRIMARY_BLUE, 1));
-        button.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.returnToModule();
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const icon = this.add
+                .text(centerX, centerY - 150, "🏆", { fontFamily: "Arial", fontSize: 64 })
+                .setOrigin(0.5);
+            this.bodyContainer.add(icon);
         });
+        localStyles.push("bounce");
 
-        this.bodyContainer.add([icon, text, badgeLine, button, buttonLabel]);
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const text = this.add
+                .text(centerX, centerY - 60, message, {
+                    fontFamily: "Arial Black",
+                    fontSize: 22,
+                    color: "#1f8d52",
+                    align: "center",
+                    lineSpacing: 10,
+                    wordWrap: { width: CONTENT_WIDTH },
+                })
+                .setOrigin(0.5);
+
+            const badgeLine = this.add
+                .text(centerX, centerY + 30, `Lencana "${config.badgeName}" berhasil diklaim!`, {
+                    fontFamily: "Arial Black",
+                    fontSize: 15,
+                    color: PRIMARY_BLUE_HEX,
+                    align: "center",
+                    wordWrap: { width: CONTENT_WIDTH },
+                })
+                .setOrigin(0.5);
+
+            this.bodyContainer.add([text, badgeLine]);
+        });
+        localStyles.push("down");
+
+        trackGroup(this.bodyContainer, localGroups, () => {
+            const buttonWidth = 240;
+            const buttonHeight = 52;
+            const buttonY = centerY + 110;
+
+            const button = new Button(this, {
+                x: centerX,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight,
+                text: "Selesai",
+                fontSize: 16,
+                borderRadius: 14,
+                fillColor: PRIMARY_BLUE,
+                strokeAlpha: 0,
+                textColor: "#ffffff",
+            });
+            button.on("pointerdown", () => {
+                playSfx(this, SFX_KEYS.click);
+                this.returnToModule();
+            });
+
+            this.bodyContainer.add(button.view);
+        });
+        localStyles.push("up");
+
+        playSceneEnter(this, localGroups, localStyles);
     }
 
     private layout(width: number, height: number) {
