@@ -95,3 +95,9 @@ export function unlockNextModuleAfter(moduleId: ModuleId) {
 export function resetModuleProgress() {
     writeCookieValue(COOKIE_NAME, serializeUnlockedModules(getDefaultUnlockedModules()));
 }
+
+/** True for the last module in the unlock chain — completing it means
+ * every module has now been finished. */
+export function isFinalModule(moduleId: ModuleId) {
+    return MODULE_ORDER[MODULE_ORDER.length - 1] === moduleId;
+}

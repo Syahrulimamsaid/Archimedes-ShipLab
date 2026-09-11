@@ -13,7 +13,7 @@ import { EnterStyleName, playSceneEnter, playSceneExit, trackGroup } from "../..
 import { BadgeId, unlockBadge } from "../../BadgeState";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
-import { ModuleId, unlockNextModuleAfter } from "../../ModuleProgress";
+import { ModuleId, isFinalModule, resetModuleProgress, unlockNextModuleAfter } from "../../ModuleProgress";
 import { shuffleQuestions } from "../../QuizShuffle";
 import { NILAI_BAIK_THRESHOLD, SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 
@@ -402,7 +402,14 @@ export class QuizScene extends Scene {
         // question wrong must not open it (e.g. Simulator Stabilitas stays
         // locked unless every SOP question is answered correctly).
         if (this.quizData.moduleId && passed) {
-            unlockNextModuleAfter(this.quizData.moduleId);
+            if (isFinalModule(this.quizData.moduleId)) {
+                // Finishing the very last module resets the unlock cookie
+                // back to its initial state — the next page refresh starts
+                // the whole module chain over from scratch.
+                resetModuleProgress();
+            } else {
+                unlockNextModuleAfter(this.quizData.moduleId);
+            }
         }
 
         if (passed) {

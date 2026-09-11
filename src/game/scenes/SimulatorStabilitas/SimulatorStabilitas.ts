@@ -4,7 +4,6 @@ import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { setSimulatorProgress } from "../../StabilityModuleState";
 import { createContainerToken } from "./CargoContainerView";
@@ -41,7 +40,6 @@ export class SimulatorStabilitas extends Scene {
     private placements: CargoPlacement[] = [];
     private availableCargo: CargoContainer[] = [];
     private caseNumber: CaseNumber = 1;
-    private hasAttemptedCheck = false;
     private initialColorCounter = 0;
 
     private dragGhost: GameObjects.Container | null = null;
@@ -283,13 +281,6 @@ export class SimulatorStabilitas extends Scene {
     }
 
     private checkStability() {
-        if (!this.hasAttemptedCheck) {
-            this.hasAttemptedCheck = true;
-            // Attempting the exercise (right or wrong) is what unlocks
-            // Hasil & Umpan Balik — not merely opening the scene.
-            unlockNextModuleAfter("simulator-stabilitas");
-        }
-
         playSfx(this, SFX_KEYS.click);
         const result = this.recomputeStability();
 

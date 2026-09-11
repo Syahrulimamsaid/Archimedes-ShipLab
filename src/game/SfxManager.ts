@@ -37,16 +37,24 @@ export const NILAI_BAIK_THRESHOLD = 70;
 
 let currentVoice: Phaser.Sound.BaseSound | null = null;
 
-/** Plays a one-shot "voice" line — narration, a menu-hover cue, or a quiz
- * result cue — stopping whatever voice line is currently playing first so
- * they never overlap each other. Distinct from playSfx(), which is for
- * short UI blips (clicks, correct/wrong dings) that are fine to overlap. */
-export function playVoiceSfx(scene: Scene, key: string, volume = 0.85) {
+/** Immediately stops (and releases) whatever voice line is currently
+ * playing, if any — e.g. cutting off the character greeting the moment the
+ * player navigates away from MainMenu, even if nothing else happens to
+ * trigger a replacement voice line right away. */
+export function stopVoiceSfx() {
     if (currentVoice) {
         currentVoice.stop();
         currentVoice.destroy();
         currentVoice = null;
     }
+}
+
+/** Plays a one-shot "voice" line — narration, a menu-hover cue, or a quiz
+ * result cue — stopping whatever voice line is currently playing first so
+ * they never overlap each other. Distinct from playSfx(), which is for
+ * short UI blips (clicks, correct/wrong dings) that are fine to overlap. */
+export function playVoiceSfx(scene: Scene, key: string, volume = 0.85) {
+    stopVoiceSfx();
 
     const voice = scene.sound.add(key, { volume });
     currentVoice = voice;

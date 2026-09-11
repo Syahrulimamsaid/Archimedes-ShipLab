@@ -4,7 +4,7 @@ import { ButtonImage } from "../../../component/Button/ButtonImage";
 import { ExitButton } from "../../../component/Button/ExitButton";
 import { initBgm, isBgmEnabled, toggleBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 import { isModuleUnlocked, ModuleId } from "../../ModuleProgress";
 import { CharacterPanel } from "./CharacterPanel";
 import { CardIntroStyle, MenuCard } from "./MenuCard";
@@ -112,10 +112,10 @@ export class MainMenu extends Scene {
             size: 40,
             onClick: () => {
                 playSfx(this, SFX_KEYS.click);
+                playVoiceSfx(this, SFX_KEYS.menuKeluar);
                 this.exitModal.open();
             },
         });
-        this.exitButton.on("pointerover", () => playVoiceSfx(this, SFX_KEYS.menuKeluar));
 
         this.bgmToggleButton = new BgmToggleButton(this, {
             height: 44,
@@ -202,7 +202,12 @@ export class MainMenu extends Scene {
         // unlike the animation below which replays every visit.
         if (!this.hasPlayedGreeting) {
             this.hasPlayedGreeting = true;
-            playSfx(this, SFX_KEYS.greeting, 0.9);
+            // playVoiceSfx (not playSfx) so this VO gets cut off the moment
+            // any other voice line starts — a menu hover, the exit modal,
+            // or the destination scene's own narration — instead of
+            // bleeding on past the point the player has already navigated
+            // away from MainMenu.
+            playVoiceSfx(this, SFX_KEYS.greeting, 0.9);
         }
 
         // Logo: a fade + pop, not a position slide — its x is already
@@ -292,6 +297,11 @@ export class MainMenu extends Scene {
      * screen just cutting away. */
     private playExitAnimation(onComplete: () => void) {
         this.tweens.killTweensOf(this); // stop the logo sway from fighting the fade-out below
+        // Guarantees the character greeting (or any other voice line) never
+        // bleeds past the point the player has chosen to leave MainMenu,
+        // even on a path that doesn't happen to trigger a replacement
+        // voice line of its own.
+        stopVoiceSfx();
 
         let maxEnd = 0;
         this.menuCards.forEach((card, index) => {

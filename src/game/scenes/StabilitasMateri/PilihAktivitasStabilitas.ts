@@ -2,8 +2,17 @@ import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
 import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
-import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE } from "../../../component/ModulePanel/ModulePanel";
-import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
+import {
+    BODY_TEXT,
+    BORDER_BLUE,
+    DARK_NAVY,
+    PRIMARY_BLUE,
+} from "../../../component/ModulePanel/ModulePanel";
+import {
+    playSceneEnter,
+    playSceneExit,
+    trackGroup,
+} from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { getStabilityModuleProgress } from "../../StabilityModuleState";
@@ -72,7 +81,9 @@ export class PilihAktivitasStabilitas extends Scene {
     }
 
     private goTo(sceneKey: string) {
-        playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
+        playSceneExit(this, this.transitionGroups, () =>
+            this.scene.start(sceneKey),
+        );
     }
 
     // ---- Header ---------------------------------------------------------------
@@ -96,33 +107,40 @@ export class PilihAktivitasStabilitas extends Scene {
 
         this.buildActivityCard({
             x: MARGIN,
-            icon: "📝",
-            title: "KUIS STABILITAS",
-            description: "Uji pemahaman konsep dan perhitungan dasar stabilitas kapal.",
-            infoPill: "5 SOAL",
-            statusLabel: progress.quizCompleted ? `✓ SELESAI · Skor: ${progress.quizScore}` : "BELUM DIKERJAKAN",
-            statusColor: progress.quizCompleted ? GREEN_HEX : BODY_TEXT,
-            buttonLabel: "MULAI KUIS",
-            hoverSfxKey: SFX_KEYS.menuKuis,
-            onStart: () => {
-                playSfx(this, SFX_KEYS.click);
-                this.goTo("StabilitasQuiz");
-            },
-        });
 
-        this.buildActivityCard({
-            x: MARGIN + CARD_WIDTH + CARD_GAP,
             icon: "🚢",
             title: "SIMULATOR STABILITAS",
-            description: "Atur distribusi muatan dan lihat pengaruhnya terhadap kemiringan kapal.",
+            description:
+                "Atur distribusi muatan dan lihat pengaruhnya terhadap kemiringan kapal.",
             infoPill: "3 CASE",
-            statusLabel: progress.simulatorCompleted ? `✓ SELESAI · ${progress.simulatorCasesCompleted}/3 Case` : "BELUM DIKERJAKAN",
+            statusLabel: progress.simulatorCompleted
+                ? `✓ SELESAI · ${progress.simulatorCasesCompleted}/3 Case`
+                : "BELUM DIKERJAKAN",
             statusColor: progress.simulatorCompleted ? GREEN_HEX : BODY_TEXT,
             buttonLabel: "MULAI SIMULATOR",
             hoverSfxKey: SFX_KEYS.menuSimulator,
             onStart: () => {
                 playSfx(this, SFX_KEYS.click);
                 this.goTo("SimulatorStabilitas");
+            },
+        });
+
+        this.buildActivityCard({
+            x: MARGIN + CARD_WIDTH + CARD_GAP,
+            icon: "📝",
+            title: "KUIS STABILITAS",
+            description:
+                "Uji pemahaman konsep dan perhitungan dasar stabilitas kapal.",
+            infoPill: "5 SOAL",
+            statusLabel: progress.quizCompleted
+                ? `✓ SELESAI · Skor: ${progress.quizScore}`
+                : "BELUM DIKERJAKAN",
+            statusColor: progress.quizCompleted ? GREEN_HEX : BODY_TEXT,
+            buttonLabel: "MULAI KUIS",
+            hoverSfxKey: SFX_KEYS.menuKuis,
+            onStart: () => {
+                playSfx(this, SFX_KEYS.click);
+                this.goTo("StabilitasQuiz");
             },
         });
     }
@@ -139,10 +157,19 @@ export class PilihAktivitasStabilitas extends Scene {
         card.strokeRoundedRect(x, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
         this.root.add(card);
 
-        const icon = this.add.text(centerX, CARD_Y + 70, cfg.icon, { fontFamily: "Arial", fontSize: 48 }).setOrigin(0.5);
+        const icon = this.add
+            .text(centerX, CARD_Y + 70, cfg.icon, {
+                fontFamily: "Arial",
+                fontSize: 48,
+            })
+            .setOrigin(0.5);
 
         const title = this.add
-            .text(centerX, CARD_Y + 140, cfg.title, { fontFamily: "Arial Black", fontSize: 22, color: DARK_NAVY })
+            .text(centerX, CARD_Y + 140, cfg.title, {
+                fontFamily: "Arial Black",
+                fontSize: 22,
+                color: DARK_NAVY,
+            })
             .setOrigin(0.5);
 
         const description = this.add
@@ -158,16 +185,30 @@ export class PilihAktivitasStabilitas extends Scene {
         description.setX(centerX - description.width / 2);
 
         const pillY = CARD_Y + 270;
-        const pillText = this.add.text(0, 0, cfg.infoPill, { fontFamily: "Arial Black", fontSize: 13, color: "#ffffff" });
+        const pillText = this.add.text(0, 0, cfg.infoPill, {
+            fontFamily: "Arial Black",
+            fontSize: 13,
+            color: "#ffffff",
+        });
         const pillWidth = pillText.width + 36;
         const pillBg = this.add.graphics();
         pillBg.fillStyle(PRIMARY_BLUE, 1);
-        pillBg.fillRoundedRect(centerX - pillWidth / 2, pillY - 17, pillWidth, 34, 17);
+        pillBg.fillRoundedRect(
+            centerX - pillWidth / 2,
+            pillY - 17,
+            pillWidth,
+            34,
+            17,
+        );
         pillText.setPosition(centerX, pillY);
         pillText.setOrigin(0.5);
 
         const statusText = this.add
-            .text(centerX, CARD_Y + 330, cfg.statusLabel, { fontFamily: "Arial Black", fontSize: 14, color: cfg.statusColor })
+            .text(centerX, CARD_Y + 330, cfg.statusLabel, {
+                fontFamily: "Arial Black",
+                fontSize: 14,
+                color: cfg.statusColor,
+            })
             .setOrigin(0.5);
 
         const buttonWidth = 240;
@@ -188,7 +229,15 @@ export class PilihAktivitasStabilitas extends Scene {
         button.on("pointerdown", cfg.onStart);
         button.on("pointerover", () => playVoiceSfx(this, cfg.hoverSfxKey));
 
-        this.root.add([icon, title, description, pillBg, pillText, statusText, button.view]);
+        this.root.add([
+            icon,
+            title,
+            description,
+            pillBg,
+            pillText,
+            statusText,
+            button.view,
+        ]);
     }
 
     // ---- Layout -------------------------------------------------------------------
