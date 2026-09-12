@@ -29,6 +29,21 @@ export class Preloader extends Scene {
     }
 
     init() {
+        // This scene is a Phaser singleton — scene.start("Preloader") (e.g.
+        // from MainMenu's exit modal) re-runs init()/preload()/create() on
+        // the SAME instance rather than a fresh one, so every field that
+        // gates a one-time reveal/transition has to be explicitly reset
+        // here or it stays stuck at its value from the very first run
+        // (isReadyToContinue in particular staying `true` meant
+        // tryFinishLoading() no-op'd on the second run and the touch
+        // icon/"klik di mana saja" prompt never got their reveal tween).
+        this.isReadyToContinue = false;
+        this.progressValue = 0;
+        this.hasPlayedIntro = false;
+        this.progressIntroScale = 1;
+        this.realLoadComplete = false;
+        this.minDurationElapsed = false;
+
         this.background = this.add.image(0, 0, "background");
         this.logo = this.add.image(0, 0, "logo").setDepth(20);
 
@@ -178,25 +193,32 @@ export class Preloader extends Scene {
             this.tryFinishLoading();
         });
 
-        // `on`, not `once` — a click while still loading must not consume
-        // the listener (isReadyToContinue is false, so it's a no-op), or
-        // every click after loading actually finishes would silently do
-        // nothing. Remove it manually the one time it actually proceeds.
-        const handlePointerDown = () => {
+        // `on`, not `once` — a tap while still loading must not consume the
+        // listener (isReadyToContinue is false, so it's a no-op), or every
+        // tap after loading actually finishes would silently do nothing.
+        // Removed manually the one time it actually proceeds.
+        //
+        // Phaser's ScaleManager.startFullscreen() docs are explicit that it
+        // *must* be triggered from "pointerup", not "pointerdown" — on touch
+        // devices (Android/iOS), requesting fullscreen on pointerdown fails
+        // unless the document already received some other touch input
+        // first, which is exactly why the very first tap could silently
+        // fail to go fullscreen (working only after a refresh, once some
+        // earlier touch had already "warmed up" the page). Listening for
+        // pointerup instead is Phaser's documented fix for this.
+        const handlePointerUp = () => {
             if (!this.isReadyToContinue) {
                 return;
             }
 
-            this.input.off("pointerdown", handlePointerDown);
+            this.input.off("pointerup", handlePointerUp);
 
-            // Fullscreen requires a user gesture, so it must be requested
-            // here (inside the click handler), not later in MainMenu.
             if (this.scale.fullscreen.available && !this.scale.isFullscreen) {
                 this.scale.startFullscreen();
             }
             this.scene.start("MainMenu");
         };
-        this.input.on("pointerdown", handlePointerDown);
+        this.input.on("pointerup", handlePointerUp);
 
         this.events.once("shutdown", () => {
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
