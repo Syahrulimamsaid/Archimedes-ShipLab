@@ -1,6 +1,6 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { createBackButton } from "../../../component/ModuleHeader/ModuleHeader";
+import { createHomeButton } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
@@ -58,7 +58,7 @@ export class Tentang extends Scene {
     // ---- Title + back button --------------------------------------------------
 
     private buildTopBar() {
-        const backButton = createBackButton(this, MARGIN, 40, () => this.goTo("MainMenu"));
+        const homeButton = createHomeButton(this, MARGIN, 40, () => this.goTo("MainMenu"));
 
         const title = this.add
             .text(DESIGN_WIDTH / 2, 67, "TENTANG", {
@@ -68,7 +68,7 @@ export class Tentang extends Scene {
             })
             .setOrigin(0.5);
 
-        this.root.add([backButton, title]);
+        this.root.add([homeButton, title]);
     }
 
     // ---- Content card -----------------------------------------------------------

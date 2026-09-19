@@ -77,7 +77,7 @@ export class AnatomiStruktur extends Scene {
             heading: "Struktur Dasar Berganda Kapal",
             subtitle:
                 "Klik setiap komponen pada potongan dasar berganda\nuntuk mengetahui spesifikasi materialnya.",
-            onBack: () => this.goTo("MainMenu"),
+            onHome: () => this.goTo("MainMenu"),
         });
         this.root.add(header.view);
     }

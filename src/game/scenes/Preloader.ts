@@ -175,6 +175,8 @@ export class Preloader extends Scene {
             "AnatomiStructure.btn.kembali",
             "assets/AnatomiStructure/btn_kembali.png",
         );
+        this.load.image("navigation.home", "assets/btn_home.png");
+        this.load.image("navigation.back", "assets/btn_back.png");
         this.load.image(
             "AnatomiStructure.card.infoPintu",
             "assets/AnatomiStructure/card_info_pintu.png",

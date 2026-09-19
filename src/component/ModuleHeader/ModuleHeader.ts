@@ -14,7 +14,10 @@ export interface ModuleHeaderConfig {
     breadcrumbLabel: string;
     heading: string;
     subtitle: string;
-    onBack: () => void;
+    /** Returns directly to the main menu. */
+    onHome: () => void;
+    /** Returns to the preceding page in this module, when one exists. */
+    onBack?: () => void;
 }
 
 /**
@@ -29,7 +32,10 @@ export class ModuleHeader {
     constructor(scene: Scene, config: ModuleHeaderConfig) {
         const { x } = config;
 
-        const backButton = createBackButton(scene, x, 40, config.onBack);
+        const homeButton = createHomeButton(scene, x, 40, config.onHome);
+        const backButton = config.onBack
+            ? createPreviousButton(scene, x + 72, 40, config.onBack)
+            : null;
 
         const breadcrumbY = 148;
         const badgeText = scene.add.text(0, 0, config.badgeLabel, {
@@ -74,7 +80,8 @@ export class ModuleHeader {
         });
 
         this.view = [
-            backButton,
+            homeButton,
+            ...(backButton ? [backButton] : []),
             badgeBg,
             badgeText,
             chevron,
@@ -170,4 +177,51 @@ export function createBackButton(scene: Scene, x: number, y: number, onBack: () 
     });
 
     return container;
+}
+
+function createAssetNavigationButton(
+    scene: Scene,
+    x: number,
+    y: number,
+    texture: string,
+    onClick: () => void,
+): GameObjects.Container {
+    const size = 58;
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const icon = scene.add.image(0, 0, texture).setDisplaySize(size, size);
+    const hitArea = scene.add
+        .rectangle(0, 0, size, size, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true });
+    const container = scene.add.container(centerX, centerY, [icon, hitArea]);
+
+    let hoverTween: Phaser.Tweens.Tween | null = null;
+    hitArea.on("pointerover", () => {
+        hoverTween?.stop();
+        hoverTween = scene.tweens.add({
+            targets: container, scaleX: 1.05, scaleY: 1.05, y: centerY - 3,
+            duration: 140, ease: "Back.Out",
+        });
+    });
+    hitArea.on("pointerout", () => {
+        hoverTween?.stop();
+        hoverTween = scene.tweens.add({
+            targets: container, scaleX: 1, scaleY: 1, y: centerY,
+            duration: 140, ease: "Quad.Out",
+        });
+    });
+    hitArea.on("pointerdown", () => {
+        playSfx(scene, SFX_KEYS.click);
+        onClick();
+    });
+    return container;
+}
+
+/** Button that always exits the current module and opens the main menu. */
+export function createHomeButton(scene: Scene, x: number, y: number, onHome: () => void): GameObjects.Container {
+    return createAssetNavigationButton(scene, x, y, "navigation.home", onHome);
+}
+
+function createPreviousButton(scene: Scene, x: number, y: number, onBack: () => void): GameObjects.Container {
+    return createAssetNavigationButton(scene, x, y, "navigation.back", onBack);
 }
