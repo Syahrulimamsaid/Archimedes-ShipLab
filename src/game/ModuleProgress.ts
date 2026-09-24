@@ -1,7 +1,6 @@
 export type ModuleId = "anatomi-struktur" | "simulator-stabilitas" | "hasil-umpan-balik";
 
-const COOKIE_NAME = "archimedes_shiplab_unlocked_modules";
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const STORAGE_KEY = "archimedes_shiplab_unlocked_modules";
 const MODULE_ORDER: ModuleId[] = [
     "anatomi-struktur",
     "simulator-stabilitas",
@@ -13,7 +12,7 @@ function getDefaultUnlockedModules(): ModuleId[] {
 }
 
 function isBrowser() {
-    return typeof document !== "undefined";
+    return typeof window !== "undefined";
 }
 
 function parseUnlockedModules(raw: string | null): ModuleId[] {
@@ -37,35 +36,33 @@ function serializeUnlockedModules(modules: ModuleId[]) {
     return MODULE_ORDER.filter((moduleId) => modules.includes(moduleId)).join(",");
 }
 
-function readCookieValue(name: string) {
+function readStorageValue(key: string) {
     if (!isBrowser()) {
         return null;
     }
 
-    const prefix = `${name}=`;
-    const parts = document.cookie.split(";");
-
-    for (const part of parts) {
-        const trimmed = part.trim();
-        if (trimmed.startsWith(prefix)) {
-            return decodeURIComponent(trimmed.slice(prefix.length));
-        }
+    try {
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
     }
-
-    return null;
 }
 
-function writeCookieValue(name: string, value: string) {
+function writeStorageValue(key: string, value: string) {
     if (!isBrowser()) {
         return;
     }
 
-    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${COOKIE_MAX_AGE_SECONDS}; path=/; SameSite=Lax`;
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // localStorage unavailable (e.g. disabled by user); progress won't persist.
+    }
 }
 
 export function getUnlockedModules(): ModuleId[] {
-    const modules = parseUnlockedModules(readCookieValue(COOKIE_NAME));
-    writeCookieValue(COOKIE_NAME, serializeUnlockedModules(modules));
+    const modules = parseUnlockedModules(readStorageValue(STORAGE_KEY));
+    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(modules));
     return modules;
 }
 
@@ -77,7 +74,7 @@ export function unlockModule(moduleId: ModuleId) {
     const unlocked = new Set<ModuleId>(getUnlockedModules());
     unlocked.add(moduleId);
     const normalized = MODULE_ORDER.filter((id) => unlocked.has(id));
-    writeCookieValue(COOKIE_NAME, serializeUnlockedModules(normalized));
+    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(normalized));
 }
 
 export function unlockNextModuleAfter(moduleId: ModuleId) {
@@ -93,7 +90,7 @@ export function unlockNextModuleAfter(moduleId: ModuleId) {
 }
 
 export function resetModuleProgress() {
-    writeCookieValue(COOKIE_NAME, serializeUnlockedModules(getDefaultUnlockedModules()));
+    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(getDefaultUnlockedModules()));
 }
 
 /** True for the last module in the unlock chain — completing it means

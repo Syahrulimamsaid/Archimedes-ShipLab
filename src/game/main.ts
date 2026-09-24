@@ -7,6 +7,7 @@ import { HasilUmpanBalik } from "./scenes/HasilUmpanBalik/HasilUmpanBalik";
 import { MainMenu } from "./scenes/MainMenu/MainMenu";
 import { AUTO, Game, Scale } from "phaser";
 import { Preloader } from "./scenes/Preloader";
+import { withOfflineOverrides } from "./offlineConfig";
 import { PilihAktivitasStabilitas } from "./scenes/StabilitasMateri/PilihAktivitasStabilitas";
 import { StabilitasMateri } from "./scenes/StabilitasMateri/StabilitasMateri";
 import { StabilitasQuiz } from "./scenes/StabilitasMateri/StabilitasQuiz";
@@ -49,7 +50,7 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 const StartGame = (parent: string) => {
-    return new Game({ ...config, parent });
+    return new Game(withOfflineOverrides({ ...config, parent }));
 };
 
 export default StartGame;

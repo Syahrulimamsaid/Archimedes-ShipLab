@@ -19,6 +19,11 @@ const phasermsg = () => {
 
 export default defineConfig({
     base: './',
+    define: {
+        // Online build: the offline-only runtime overrides in
+        // src/game/offlineConfig.ts are compiled out.
+        __OFFLINE_BUILD__: 'false',
+    },
     plugins: [
         react(),
         phasermsg()

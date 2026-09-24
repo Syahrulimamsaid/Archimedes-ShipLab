@@ -403,7 +403,7 @@ export class QuizScene extends Scene {
         // locked unless every SOP question is answered correctly).
         if (this.quizData.moduleId && passed) {
             if (isFinalModule(this.quizData.moduleId)) {
-                // Finishing the very last module resets the unlock cookie
+                // Finishing the very last module resets the unlock progress
                 // back to its initial state — the next page refresh starts
                 // the whole module chain over from scratch.
                 resetModuleProgress();

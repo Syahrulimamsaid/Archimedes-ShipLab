@@ -23,6 +23,8 @@
   "scripts": {
     "dev": "concurrently \"node log.js dev\" \"vite --config vite/config.dev.mjs --host 0.0.0.0\"",
     "build": "concurrently \"node log.js build\" \"vite build --config vite/config.prod.mjs\"",
+    "build:offline": "vite build --config vite/config.offline.mjs",
+    "verify:offline": "node scripts/verify-offline.mjs dist-offline/index.html",
     "dev-nolog": "vite --config vite/config.dev.mjs",
     "build-nolog": "vite build --config vite/config.prod.mjs"
   },
@@ -41,6 +43,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "playwright": "^1.63.0",
     "terser": "^5.28.1",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.26.1",
