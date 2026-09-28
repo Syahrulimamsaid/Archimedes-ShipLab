@@ -1,6 +1,5 @@
 export type ModuleId = "anatomi-struktur" | "simulator-stabilitas" | "hasil-umpan-balik";
 
-const STORAGE_KEY = "archimedes_shiplab_unlocked_modules";
 const MODULE_ORDER: ModuleId[] = [
     "anatomi-struktur",
     "simulator-stabilitas",
@@ -11,59 +10,13 @@ function getDefaultUnlockedModules(): ModuleId[] {
     return ["anatomi-struktur"];
 }
 
-function isBrowser() {
-    return typeof window !== "undefined";
-}
-
-function parseUnlockedModules(raw: string | null): ModuleId[] {
-    if (!raw) {
-        return getDefaultUnlockedModules();
-    }
-
-    const unlocked = new Set<ModuleId>(getDefaultUnlockedModules());
-    raw.split(",")
-        .map((value) => value.trim())
-        .forEach((value) => {
-            if (MODULE_ORDER.includes(value as ModuleId)) {
-                unlocked.add(value as ModuleId);
-            }
-        });
-
-    return MODULE_ORDER.filter((moduleId) => unlocked.has(moduleId));
-}
-
-function serializeUnlockedModules(modules: ModuleId[]) {
-    return MODULE_ORDER.filter((moduleId) => modules.includes(moduleId)).join(",");
-}
-
-function readStorageValue(key: string) {
-    if (!isBrowser()) {
-        return null;
-    }
-
-    try {
-        return window.localStorage.getItem(key);
-    } catch {
-        return null;
-    }
-}
-
-function writeStorageValue(key: string, value: string) {
-    if (!isBrowser()) {
-        return;
-    }
-
-    try {
-        window.localStorage.setItem(key, value);
-    } catch {
-        // localStorage unavailable (e.g. disabled by user); progress won't persist.
-    }
-}
+// Kept only in memory (module-level state), not persisted to localStorage/cookies:
+// unlock progress must reset to the initial state on every page reload, and only
+// advance while the user completes steps within the same session.
+let unlockedModules: ModuleId[] = getDefaultUnlockedModules();
 
 export function getUnlockedModules(): ModuleId[] {
-    const modules = parseUnlockedModules(readStorageValue(STORAGE_KEY));
-    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(modules));
-    return modules;
+    return MODULE_ORDER.filter((moduleId) => unlockedModules.includes(moduleId));
 }
 
 export function isModuleUnlocked(moduleId: ModuleId) {
@@ -71,10 +24,9 @@ export function isModuleUnlocked(moduleId: ModuleId) {
 }
 
 export function unlockModule(moduleId: ModuleId) {
-    const unlocked = new Set<ModuleId>(getUnlockedModules());
+    const unlocked = new Set<ModuleId>(unlockedModules);
     unlocked.add(moduleId);
-    const normalized = MODULE_ORDER.filter((id) => unlocked.has(id));
-    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(normalized));
+    unlockedModules = MODULE_ORDER.filter((id) => unlocked.has(id));
 }
 
 export function unlockNextModuleAfter(moduleId: ModuleId) {
@@ -90,7 +42,7 @@ export function unlockNextModuleAfter(moduleId: ModuleId) {
 }
 
 export function resetModuleProgress() {
-    writeStorageValue(STORAGE_KEY, serializeUnlockedModules(getDefaultUnlockedModules()));
+    unlockedModules = getDefaultUnlockedModules();
 }
 
 /** True for the last module in the unlock chain — completing it means
