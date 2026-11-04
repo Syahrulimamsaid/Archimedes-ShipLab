@@ -6,7 +6,6 @@ import { BODY_TEXT, PRIMARY_BLUE } from "../../../component/ModulePanel/ModulePa
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
-import { getStabilityModuleProgress } from "../../StabilityModuleState";
 
 const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 980;
@@ -16,8 +15,7 @@ const GREEN_HEX = "#1f8d52";
 /**
  * "Hasil Simulator" — shown once the existing SimulatorStabilitas scene
  * finishes its 3rd case, mirroring StabilitasQuiz's result screen so both
- * activities end on a matching results page before returning to the
- * Pilih Aktivitas hub.
+ * activities end on a matching results page before continuing to the quiz.
  */
 export class StabilitasSimulatorResult extends Scene {
     private background!: GameObjects.Image;
@@ -64,13 +62,12 @@ export class StabilitasSimulatorResult extends Scene {
             heading: "HASIL SIMULATOR",
             subtitle: "Ringkasan hasil simulasi distribusi muatan yang telah kamu selesaikan.",
             onHome: () => this.goTo("MainMenu"),
-            onBack: () => this.goTo("PilihAktivitasStabilitas"),
+            onBack: () => this.goTo("SimulatorStabilitas"),
         });
         this.root.add(header.view);
     }
 
     private buildResultCard() {
-        const progress = getStabilityModuleProgress();
         const cardX = MARGIN;
         const cardY = 300;
         const cardWidth = DESIGN_WIDTH - MARGIN * 2;
@@ -97,70 +94,48 @@ export class StabilitasSimulatorResult extends Scene {
             .setOrigin(0.5);
         this.root.add([icon, title, subtitle]);
 
-        const needsQuizCta = !progress.quizCompleted;
         const buttonWidth = 260;
         const buttonHeight = 52;
         const buttonsTop = cardY + 250;
         const gap = 20;
 
-        if (needsQuizCta) {
-            const returnButton = new Button(this, {
-                x: centerX - buttonWidth / 2 - gap / 2,
-                y: buttonsTop + buttonHeight / 2,
-                width: buttonWidth,
-                height: buttonHeight,
-                text: "KEMBALI KE PILIH AKTIVITAS",
-                fontSize: 12,
-                borderRadius: 14,
-                fillColor: 0xffffff,
-                strokeColor: PRIMARY_BLUE,
-                strokeAlpha: 1,
-                textColor: "#2f68d8",
-                wordWrapWidth: buttonWidth - 24,
-            });
-            returnButton.on("pointerdown", () => {
-                playSfx(this, SFX_KEYS.click);
-                this.goTo("PilihAktivitasStabilitas");
-            });
+        const returnButton = new Button(this, {
+            x: centerX - buttonWidth / 2 - gap / 2,
+            y: buttonsTop + buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            text: "ULANGI SIMULATOR",
+            fontSize: 12,
+            borderRadius: 14,
+            fillColor: 0xffffff,
+            strokeColor: PRIMARY_BLUE,
+            strokeAlpha: 1,
+            textColor: "#2f68d8",
+            wordWrapWidth: buttonWidth - 24,
+        });
+        returnButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.goTo("SimulatorStabilitas");
+        });
 
-            const quizButton = new Button(this, {
-                x: centerX + buttonWidth / 2 + gap / 2,
-                y: buttonsTop + buttonHeight / 2,
-                width: buttonWidth,
-                height: buttonHeight,
-                text: "KERJAKAN KUIS →",
-                fontSize: 14,
-                borderRadius: 14,
-                fillColor: PRIMARY_BLUE,
-                strokeAlpha: 0,
-                textColor: "#ffffff",
-            });
-            quizButton.on("pointerdown", () => {
-                playSfx(this, SFX_KEYS.click);
-                this.goTo("StabilitasQuiz");
-            });
+        const quizButton = new Button(this, {
+            x: centerX + buttonWidth / 2 + gap / 2,
+            y: buttonsTop + buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            text: "LANJUT KE KUIS →",
+            fontSize: 14,
+            borderRadius: 14,
+            fillColor: PRIMARY_BLUE,
+            strokeAlpha: 0,
+            textColor: "#ffffff",
+        });
+        quizButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.goTo("StabilitasQuiz");
+        });
 
-            this.root.add([returnButton.view, quizButton.view]);
-        } else {
-            const returnButton = new Button(this, {
-                x: centerX,
-                y: buttonsTop + buttonHeight / 2,
-                width: buttonWidth,
-                height: buttonHeight,
-                text: "KEMBALI KE PILIH AKTIVITAS",
-                fontSize: 13,
-                borderRadius: 14,
-                fillColor: PRIMARY_BLUE,
-                strokeAlpha: 0,
-                textColor: "#ffffff",
-                wordWrapWidth: buttonWidth - 24,
-            });
-            returnButton.on("pointerdown", () => {
-                playSfx(this, SFX_KEYS.click);
-                this.goTo("PilihAktivitasStabilitas");
-            });
-            this.root.add(returnButton.view);
-        }
+        this.root.add([returnButton.view, quizButton.view]);
     }
 
     private layout(width: number, height: number) {

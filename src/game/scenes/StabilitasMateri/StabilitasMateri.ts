@@ -966,7 +966,7 @@ export class StabilitasMateri extends Scene {
             y: buttonY,
             width: buttonWidth,
             height: buttonHeight,
-            text: "PILIH AKTIVITAS →",
+            text: "LANJUT KE SIMULATOR →",
             fontSize: 15,
             borderRadius: 14,
             fillColor: PRIMARY_BLUE,
@@ -976,7 +976,7 @@ export class StabilitasMateri extends Scene {
         button.on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
             setMaterialCompleted();
-            this.goTo("PilihAktivitasStabilitas");
+            this.goTo("SimulatorStabilitas");
         });
         this.bodyContainer.add(button.view);
     }

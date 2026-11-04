@@ -546,6 +546,7 @@ export class QuizScene extends Scene {
                 });
                 retryButton.on("pointerdown", () => {
                     this.transitionBody(() => {
+                        this.quizData.config = shuffleQuizConfig(this.quizData.config);
                         this.questionIndex = 0;
                         this.selectedIndex = null;
                         this.answered = false;

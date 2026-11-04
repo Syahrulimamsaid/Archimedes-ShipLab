@@ -9,7 +9,7 @@ import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { shuffleQuestions } from "../../QuizShuffle";
 import { NILAI_BAIK_THRESHOLD, SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
-import { getStabilityModuleProgress, setQuizResult } from "../../StabilityModuleState";
+import { setQuizResult } from "../../StabilityModuleState";
 import { STABILITAS_QUIZ_QUESTIONS } from "./StabilitasQuizData";
 
 const DESIGN_WIDTH = 1536;
@@ -115,7 +115,7 @@ export class StabilitasQuiz extends Scene {
             heading: "KUIS STABILITAS",
             subtitle: "Jawab 5 soal untuk menguji pemahamanmu tentang stabilitas kapal.",
             onHome: () => this.goTo("MainMenu"),
-            onBack: () => this.goTo("PilihAktivitasStabilitas"),
+            onBack: () => this.goTo("SimulatorStabilitas"),
         });
         this.root.add(header.view);
     }
@@ -388,16 +388,10 @@ export class StabilitasQuiz extends Scene {
             this.bodyContainer.add([mark, label]);
         });
 
-        const progress = getStabilityModuleProgress();
-        const needsSimulatorCta = !progress.simulatorCompleted;
-
         const buttonWidth = 220;
         const buttonHeight = 48;
         const buttonsTop = listTop + TOTAL_QUESTIONS * rowHeight + 30;
         const gap = 16;
-        // The two-button row spans [centerX - buttonWidth - gap/2, centerX + buttonWidth + gap/2]
-        // — the CTA below is sized to that exact same span so its edges line up precisely.
-        const rowSpan = buttonWidth * 2 + gap;
 
         const retryButton = new Button(this, {
             x: centerX - buttonWidth / 2 - gap / 2,
@@ -419,7 +413,7 @@ export class StabilitasQuiz extends Scene {
             y: buttonsTop + buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            text: "KEMBALI KE PILIH AKTIVITAS",
+            text: "KEMBALI KE MENU UTAMA",
             fontSize: 12,
             borderRadius: 12,
             fillColor: PRIMARY_BLUE,
@@ -429,36 +423,12 @@ export class StabilitasQuiz extends Scene {
         });
         returnButton.on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
-            this.goTo("PilihAktivitasStabilitas");
+            this.goTo("MainMenu");
         });
 
         this.bodyContainer.add([retryButton.view, returnButton.view]);
 
-        let bottomY = buttonsTop + buttonHeight;
-
-        if (needsSimulatorCta) {
-            const ctaY = buttonsTop + buttonHeight + 16;
-            const ctaButton = new Button(this, {
-                x: centerX,
-                y: ctaY + buttonHeight / 2,
-                width: rowSpan,
-                height: buttonHeight,
-                text: "LANJUT KE SIMULATOR →",
-                fontSize: 14,
-                borderRadius: 12,
-                fillColor: 0x1f8d52,
-                strokeAlpha: 0,
-                textColor: "#ffffff",
-            });
-            ctaButton.on("pointerdown", () => {
-                playSfx(this, SFX_KEYS.click);
-                this.goTo("SimulatorStabilitas");
-            });
-            this.bodyContainer.add(ctaButton.view);
-            bottomY = ctaY + buttonHeight;
-        }
-
-        this.redrawCard(bottomY);
+        this.redrawCard(buttonsTop + buttonHeight);
     }
 
     // ---- Layout -------------------------------------------------------------------
