@@ -24,7 +24,7 @@ export const STABILITAS_QUIZ_QUESTIONS: StabilitasQuizQuestion[] = [
         options: [
             "Kapal menjadi langsar (tender) dan olengannya sangat lambat",
             "Kapal memiliki GM negatif dan mudah terbalik",
-            "Kapal menjadi kaku (stiff) dan olengannya sangat cepat/menyentak",
+            "Kapal kaku dengan olengan cepat dan menyentak",
             "Kapal memiliki GM = 0 dan berada dalam keseimbangan netral",
         ],
         correctIndex: 2,
@@ -33,16 +33,16 @@ export const STABILITAS_QUIZ_QUESTIONS: StabilitasQuizQuestion[] = [
     },
     {
         question: "Titik pada kapal yang merupakan pusat gaya apung air ke atas dan berada pada pusat volume bagian kapal yang terbenam adalah...",
-        options: ["Titik K (Keel)", "Titik G (Center of Gravity)", "Titik M (Metacenter)", "Titik B (Center of Buoyancy)"],
+        options: ["Titik K (Lunas)", "Titik G (Pusat Berat)", "Titik M (Metasentrum)", "Titik B (Pusat Apung)"],
         correctIndex: 3,
         pembahasan: "Titik B (Center of Buoyancy) merupakan pusat volume bagian kapal yang terbenam dan menjadi titik kerja resultan gaya apung ke atas.",
     },
     {
         question: "Suatu kapal berada dalam kondisi Stabilitas Negatif / Labil apabila...",
         options: [
-            "Titik M berada di atas titik G (GM > 0)",
-            "Titik M berada di bawah titik G (GM < 0)",
-            "Titik M berimpit dengan titik G (GM = 0)",
+            "M di atas G (GM > 0)",
+            "M di bawah G (GM < 0)",
+            "M berimpit dengan G (GM = 0)",
             "Titik B berimpit dengan titik K",
         ],
         correctIndex: 1,
@@ -54,7 +54,7 @@ export const STABILITAS_QUIZ_QUESTIONS: StabilitasQuizQuestion[] = [
             "Fenomena Free Surface Effect yang terjadi akibat adanya tangki cairan yang terisi sebagian (slack tank) akan mengakibatkan...",
         options: [
             "Penurunan titik G secara maya sehingga memperbesar nilai GM",
-            "Kenaikan titik G secara maya sehingga mengurangi nilai GM",
+            "Titik G naik secara maya, GM berkurang",
             "Penurunan titik K sehingga kapal bertambah sarat",
             "Kenaikan titik M secara permanen",
         ],

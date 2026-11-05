@@ -22,7 +22,7 @@ export const SOP_DARURAT_QUIZ: QuizConfig = {
             question: "Apa fungsi utama pintu kedap air (watertight door) di kapal?",
             options: [
                 "Mempercepat proses bongkar muat barang",
-                "Mencegah penyebaran air antar kompartemen saat terjadi kebocoran",
+                "Mencegah penyebaran air antar kompartemen",
                 "Mengatur sirkulasi udara di dalam kapal",
                 "Menahan beban muatan di geladak atas",
             ],
@@ -32,7 +32,7 @@ export const SOP_DARURAT_QUIZ: QuizConfig = {
             question:
                 "Apa yang harus segera dilakukan awak kapal saat alarm kebocoran (flooding alarm) berbunyi?",
             options: [
-                "Menutup seluruh pintu kedap air pada kompartemen yang terdampak",
+                "Menutup pintu kedap air di kompartemen terdampak",
                 "Melanjutkan aktivitas seperti biasa",
                 "Membuka seluruh pintu kedap air untuk evakuasi",
                 "Menunggu instruksi dari darat melalui radio",
@@ -45,7 +45,7 @@ export const SOP_DARURAT_QUIZ: QuizConfig = {
             options: [
                 "Agar tampilan pintu tetap mengkilap",
                 "Agar bobot kapal berkurang",
-                "Agar pintu dapat menutup rapat dan efektif mencegah rembesan air saat darurat",
+                "Agar pintu menutup rapat tanpa rembesan air",
                 "Karena hanya diwajibkan saat kapal baru selesai dibangun",
             ],
             correctIndex: 2,
@@ -57,14 +57,14 @@ export const SOP_DARURAT_QUIZ: QuizConfig = {
                 "Kayu lapis dengan lapisan cat biasa",
                 "Aluminium tanpa pelapisan",
                 "Plastik ABS",
-                "Baja marin (marine steel) dengan lapisan epoxy / zinc rich primer",
+                "Baja marin berlapis antikorosi",
             ],
             correctIndex: 3,
         },
         {
             question: "Setelah kebocoran teratasi, mengapa pintu kedap air tidak boleh langsung dibuka kembali tanpa prosedur?",
             options: [
-                "Karena harus menunggu konfirmasi bahwa kompartemen benar-benar aman dan tekanan air di sekitarnya sudah stabil",
+                "Untuk memastikan kompartemen aman dan tekanan air sudah stabil",
                 "Karena pintu kedap air hanya boleh dibuka satu kali dalam sehari",
                 "Karena pembukaan pintu membutuhkan izin tertulis dari galangan kapal",
                 "Karena pintu kedap air akan otomatis terkunci selama 24 jam setelah ditutup",
